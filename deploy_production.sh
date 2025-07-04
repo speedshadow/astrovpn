@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# Termina o script imediatamente se um comando falhar
+set -e
+
+# Imprime cada comando antes de o executar para depuração
+set -x
+
 # === AstroVPN & Supabase Production Deployment Script ===
 # Este script automatiza a implementação completa da sua aplicação e do Supabase
 # num servidor VPS Linux limpo (como Ubuntu 22.04).
@@ -64,6 +70,7 @@ SERVICE_KEY=$(openssl rand -hex 32)
 
 # --- 4. Configurar e Iniciar o Supabase ---
 echo -e "\n${C_BLUE}A configurar o Supabase...${C_NC}"
+mkdir -p /opt # Garante que o diretório existe
 cd /opt
 if [ -d "supabase-prod" ]; then
     echo "A diretoria 'supabase-prod' já existe. A saltar o clone."
