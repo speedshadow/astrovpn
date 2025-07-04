@@ -81,17 +81,17 @@ else
     # O '|| true' garante que o script não falha se não houver nada para anular.
     git config --global --unset-all credential.helper || true
     echo "A fazer download do Supabase via zip..."
-    wget https://github.com/supabase/docker/archive/refs/heads/master.zip -O supabase-prod.zip
+    wget https://github.com/supabase/docker/archive/refs/heads/main.zip -O supabase-prod.zip
     if [ ! -f supabase-prod.zip ] || [ ! -s supabase-prod.zip ]; then
         echo "Erro: Falha ao fazer download do supabase-prod.zip. Verifique a sua ligação à internet ou DNS."
         exit 1
     fi
     unzip supabase-prod.zip
-    if [ ! -d docker-master ]; then
+    if [ ! -d docker-main ]; then
         echo "Erro: Falha ao extrair o ficheiro zip do Supabase."
         exit 1
     fi
-    mv docker-master supabase-prod
+    mv docker-main supabase-prod
     rm supabase-prod.zip
 fi
 cd supabase-prod
