@@ -80,19 +80,19 @@ else
     # Anula qualquer auxiliar de credenciais que possa interferir com um clone público.
     # O '|| true' garante que o script não falha se não houver nada para anular.
     git config --global --unset-all credential.helper || true
-    echo "A fazer download do Supabase via zip..."
-    wget https://github.com/supabase/docker/archive/refs/heads/main.zip -O supabase-prod.zip
-    if [ ! -f supabase-prod.zip ] || [ ! -s supabase-prod.zip ]; then
-        echo "Erro: Falha ao fazer download do supabase-prod.zip. Verifique a sua ligação à internet ou DNS."
+    echo "A fazer download do Supabase via zip (repo completo)..."
+    wget https://github.com/supabase/supabase/archive/refs/heads/master.zip -O supabase.zip
+    if [ ! -f supabase.zip ] || [ ! -s supabase.zip ]; then
+        echo "Erro: Falha ao fazer download do supabase.zip. Verifique a sua ligação à internet ou DNS."
         exit 1
     fi
-    unzip supabase-prod.zip
-    if [ ! -d docker-main ]; then
-        echo "Erro: Falha ao extrair o ficheiro zip do Supabase."
+    unzip supabase.zip
+    if [ ! -d supabase-master/docker ]; then
+        echo "Erro: Falha ao extrair o diretório docker do Supabase."
         exit 1
     fi
-    mv docker-main supabase-prod
-    rm supabase-prod.zip
+    mv supabase-master/docker supabase-prod
+    rm -rf supabase.zip supabase-master
 fi
 cd supabase-prod
 cp docker/example.env docker/.env
