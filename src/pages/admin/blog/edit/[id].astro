@@ -1,0 +1,52 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { BlogPostForm } from '@/components/admin/BlogPostForm';
+import type { BlogPost } from '@/components/admin/BlogPostForm';
+
+const { session, supabase } = Astro.locals;
+const { id } = Astro.params;
+
+if (!session) {
+  return Astro.redirect('/admin/login');
+}
+
+if (!id) {
+    return new Response("Post ID is required", { status: 400 });
+}
+
+// Fetch the specific blog post to edit
+const { data: post, error: postError } = await supabase
+  .from('blog_posts')
+  .select('*')
+  .eq('id', id)
+  .single();
+
+// Fetch all categories for the selector
+const { data: categories, error: categoriesError } = await supabase
+  .from('blog_categories')
+  .select('id, name')
+  .order('name', { ascending: true });
+
+if (postError) {
+  console.error('Error fetching post:', postError);
+  return new Response(`Post not found: ${postError.message}`, { status: 404 });
+}
+
+if (categoriesError) {
+    console.error('Error fetching categories:', categoriesError);
+}
+
+---
+
+<AdminLayout title={`Edit Post: ${post.title}`}>
+  <div class="flex justify-between items-center mb-6">
+      <h1 class="text-3xl font-bold">Edit Blog Post</h1>
+  </div>
+  
+  <BlogPostForm 
+    initialPost={post as BlogPost}
+    categories={categories ?? []} 
+    client:only="react" 
+  />
+
+</AdminLayout>

@@ -1,0 +1,31 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { VpnDashboard } from '@/components/admin/VpnDashboard';
+import type { Vpn } from '@/components/admin/VpnDashboard';
+
+const { supabase, session } = Astro.locals;
+
+if (!session) {
+  return Astro.redirect('/admin/login');
+}
+
+const { data: vpns, error } = await supabase.from('vpns').select('*').order('id', { ascending: true });
+
+if (error) {
+  console.error('Error fetching VPNs:', error.message);
+}
+---
+
+<AdminLayout title="VPN Management">
+
+
+  {vpns && <VpnDashboard client:load initialVpns={vpns as Vpn[]} />}
+
+  {error &&
+    <div class="bg-destructive/10 text-destructive p-4 rounded-md">
+      <h3 class="font-bold">Error</h3>
+      <p>Could not load VPN data: {error.message}</p>
+      <p>Please check the console for more details.</p>
+    </div>
+  }
+</AdminLayout>

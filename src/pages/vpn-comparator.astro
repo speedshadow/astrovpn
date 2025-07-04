@@ -1,0 +1,53 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import VpnComparatorPage from '@/components/vpn/VpnComparatorPage.tsx';
+import type { Vpn } from '@/types';
+
+const { supabase } = Astro.locals;
+
+const { data: vpns, error } = await supabase
+  .from('vpns')
+  .select(`
+    id,
+    name,
+    slug,
+    logo_url,
+    star_rating,
+    price_monthly_usd,
+    server_count,
+    country_count,
+    simultaneous_connections,
+    keeps_logs,
+    has_kill_switch,
+    has_double_vpn,
+    has_p2p,
+    has_ad_blocker,
+    affiliate_link
+  `)
+  .order('name', { ascending: true });
+
+if (error) {
+  console.error('Failed to fetch VPNs for comparator:', error);
+}
+---
+
+<script is:inline>
+  document.documentElement.classList.add('dark');
+</script>
+
+<Layout title="VPN Comparator Tool" description="Compare VPNs side-by-side to find the best one for your needs.">
+  <div class="container mx-auto px-4 py-8">
+    <header class="text-center mb-12">
+      <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-2">VPN Comparison Tool</h1>
+      <p class="text-lg text-muted-foreground">Select up to 5 VPNs to compare features side-by-side.</p>
+    </header>
+
+    {vpns && vpns.length > 0 ? (
+      <VpnComparatorPage vpns={vpns as Vpn[]} client:load />
+    ) : (
+      <div class="text-center text-muted-foreground">
+        Could not load VPNs. Please try again later.
+      </div>
+    )}
+  </div>
+</Layout>

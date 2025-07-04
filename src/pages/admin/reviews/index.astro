@@ -1,0 +1,21 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { ReviewDashboard } from '@/components/admin/ReviewDashboard';
+
+const supabase = Astro.locals.supabase;
+
+// Fetch all review pages from the database
+const { data: reviewPages, error } = await supabase
+  .from('review_pages')
+  .select('id, title, slug, created_at, vpn_ids')
+  .order('created_at', { ascending: false });
+
+if (error) {
+  console.error('Error fetching review pages:', error);
+  // Optionally, you could redirect or show an error message
+}
+---
+
+<AdminLayout title="Review Pages | Admin">
+  <ReviewDashboard client:load initialReviewPages={reviewPages ?? []} />
+</AdminLayout>

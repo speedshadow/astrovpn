@@ -1,0 +1,84 @@
+---
+import { Facebook, Twitter, Mail, Link, Linkedin } from 'lucide-react';
+import { FaWhatsapp, FaReddit } from 'react-icons/fa';
+
+interface Props {
+  title: string;
+  slug: string;
+}
+
+const { title, slug } = Astro.props;
+const urlToShare = Astro.url.origin + '/vpn/' + slug;
+const textToShare = `Check out this review of ${title} on AstroVPN!`;
+
+const shareLinks = [
+  {
+    name: 'Twitter',
+    href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(urlToShare)}&text=${encodeURIComponent(textToShare)}`,
+    icon: Twitter,
+  },
+  {
+    name: 'Facebook',
+    href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(urlToShare)}`,
+    icon: Facebook,
+  },
+  {
+    name: 'WhatsApp',
+    href: `https://api.whatsapp.com/send?text=${encodeURIComponent(textToShare)}%20${encodeURIComponent(urlToShare)}`,
+    icon: FaWhatsapp,
+  },
+  {
+    name: 'LinkedIn',
+    href: `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(urlToShare)}&title=${encodeURIComponent(title)}&summary=${encodeURIComponent(textToShare)}`,
+    icon: Linkedin,
+  },
+  {
+    name: 'Reddit',
+    href: `https://www.reddit.com/submit?url=${encodeURIComponent(urlToShare)}&title=${encodeURIComponent(title)}`,
+    icon: FaReddit,
+  },
+  {
+    name: 'Email',
+    href: `mailto:?subject=${encodeURIComponent(title)}&body=${encodeURIComponent(textToShare)}%0A%0A${encodeURIComponent(urlToShare)}`,
+    icon: Mail,
+  },
+];
+---
+
+<div class="fixed left-4 top-1/2 -translate-y-1/2 z-50 hidden lg:flex flex-col items-center gap-2 bg-card/80 backdrop-blur-sm border rounded-full p-2 shadow-lg">
+  {shareLinks.map(link => (
+    <a
+      href={link.href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Share on ${link.name}`}
+      class="p-3 rounded-full text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors duration-200"
+    >
+      <link.icon className="w-5 h-5" />
+    </a>
+  ))}
+  <div class="w-full h-[1px] bg-border my-1"></div>
+  <button
+    id="copy-link-button"
+    aria-label="Copy link to clipboard"
+    class="p-3 rounded-full text-muted-foreground hover:bg-primary/10 hover:text-primary transition-colors duration-200"
+  >
+    <Link className="w-5 h-5" />
+  </button>
+</div>
+
+<script define:vars={{ urlToShare }}>
+  const copyButton = document.getElementById('copy-link-button');
+  if (copyButton) {
+    copyButton.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(urlToShare);
+        // A simple confirmation. In a real app, you might use a toast notification.
+        copyButton.classList.add('text-green-500');
+        setTimeout(() => copyButton.classList.remove('text-green-500'), 2000);
+      } catch (err) {
+        console.error('Failed to copy link: ', err);
+      }
+    });
+  }
+</script>

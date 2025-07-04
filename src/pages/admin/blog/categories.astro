@@ -1,0 +1,33 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { BlogCategoryManager } from '@/components/admin/BlogCategoryManager';
+
+const { session, supabase } = Astro.locals;
+
+if (!session) {
+  return Astro.redirect('/admin/login');
+}
+
+// Fetch initial categories from the database on the server
+const { data: categories, error } = await supabase
+  .from('blog_categories')
+  .select('*')
+  .order('name', { ascending: true });
+
+if (error) {
+  console.error('Error fetching categories:', error);
+  // You might want to render an error message to the user
+}
+---
+
+<AdminLayout title="Blog Categories">
+
+
+  <!-- 
+    The BlogCategoryManager is a client-side component.
+    We pass the server-fetched categories as a prop.
+    `client:load` ensures the component becomes interactive in the browser.
+  -->
+  <BlogCategoryManager initialCategories={categories ?? []} client:only="react" />
+
+</AdminLayout>

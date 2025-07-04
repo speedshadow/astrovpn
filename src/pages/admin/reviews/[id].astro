@@ -1,0 +1,30 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { ReviewForm } from '@/components/admin/ReviewForm';
+
+const supabase = Astro.locals.supabase;
+const { id } = Astro.params;
+
+// Fetch the specific review page to edit
+const { data: reviewPage, error: pageError } = await supabase
+  .from('review_pages')
+  .select('*')
+  .eq('id', id)
+  .single();
+
+// Fetch all available VPNs to be selected/deselected
+const { data: allVpns, error: vpnError } = await supabase
+  .from('vpns')
+  .select('id, name, logo_url, star_rating')
+  .order('name', { ascending: true });
+
+if (pageError || vpnError) {
+  console.error('Error fetching data for edit page:', { pageError, vpnError });
+  // Handle error, e.g., show a 404 or an error message
+  return Astro.redirect('/admin/reviews');
+}
+---
+
+<AdminLayout title={`Edit: ${reviewPage.title} | Admin`}>
+  <ReviewForm client:load reviewPageToEdit={reviewPage} allVpns={allVpns ?? []} />
+</AdminLayout>

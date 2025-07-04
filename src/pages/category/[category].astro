@@ -1,0 +1,56 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import VpnCard from '@/components/vpn/VpnCard.tsx';
+import { supabase } from '@/lib/supabase';
+
+export async function getStaticPaths() {
+  // Fetch all VPNs from Supabase at build time
+  const { data: allVpns, error } = await supabase.from('vpns').select('*, categories');
+
+  if (error) {
+    console.error('Failed to fetch VPNs for category pages:', error.message);
+    return []; // Return no paths if Supabase fetch fails
+  }
+
+  const allCategories = new Set<string>();
+  allVpns.forEach(vpn => {
+    // The 'categories' column is an array of strings (TEXT[]) in Supabase
+    vpn.categories?.forEach(category => allCategories.add(category));
+  });
+
+  return Array.from(allCategories).map(category => {
+    const categoryVpns = allVpns.filter(vpn => vpn.categories?.includes(category));
+    const categoryName = category.charAt(0).toUpperCase() + category.slice(1);
+    
+    return {
+      params: { category },
+      props: { 
+        vpns: categoryVpns,
+        categoryName: categoryName
+      }
+    };
+  });
+}
+
+const { category } = Astro.params;
+const { vpns, categoryName } = Astro.props;
+---
+
+<Layout title={`Best VPNs for ${categoryName} | AstroVPN`}>
+  <div class="container mx-auto px-4 py-16">
+    <header class="text-center mb-12">
+      <h1 class="text-4xl md:text-5xl font-bold">Best VPNs for <span class="text-primary">{categoryName}</span></h1>
+      <p class="text-muted-foreground mt-4 text-lg">Here are the top-rated VPNs specifically for your {category} needs.</p>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+      {vpns.map((vpn) => (
+        <VpnCard vpn={vpn} client:visible />
+      ))}
+    </div>
+
+    <div class="text-center mt-16">
+      <a href="/" class="text-primary hover:underline">← Back to All Deals</a>
+    </div>
+  </div>
+</Layout>

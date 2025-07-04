@@ -1,0 +1,47 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { StreamingReviewsPage } from '@/components/reviews/StreamingReviewsPage';
+import type { PopulatedReviewPage } from '@/types';
+
+const supabase = Astro.locals.supabase;
+
+// Pre-fetch the data server-side for initial render
+const { data: page } = await supabase
+  .from('review_pages')
+  .select('*')
+  .eq('slug', 'streaming')
+  .single();
+
+let orderedVpns = [];
+
+// If the page has associated VPNs, fetch all data needed for the initial render
+if (page?.vpn_ids && page.vpn_ids.length > 0) {
+  const { data: vpnData } = await supabase
+    .from('vpns')
+    .select('id, name, slug, logo_url, description, star_rating, affiliate_link, pros, cons, based_in_country_name, simultaneous_connections, server_count, country_count, keeps_logs, has_court_proof, has_ad_blocker, supported_devices')
+    .in('id', page.vpn_ids);
+
+  if (vpnData) {
+    orderedVpns = page.vpn_ids
+      .map(id => vpnData.find(vpn => vpn.id === id))
+      .filter((vpn): vpn is NonNullable<typeof vpn> => vpn !== undefined);
+  }
+}
+
+// Create the initial data object for hydration
+const initialData: PopulatedReviewPage | undefined = page ? {
+  ...page,
+  vpns: orderedVpns,
+} : undefined;
+
+// SEO metadata
+const title = page?.title
+  ? page.title.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+  : 'Best VPNs for Streaming';
+const description = page?.description || 'Find the best VPNs for streaming services like Netflix, Hulu, Disney+, and more.';
+---
+
+<Layout title={title} description={description}>
+  <StreamingReviewsPage initialData={initialData} client:load />
+</Layout>
+</Layout>

@@ -1,0 +1,192 @@
+---
+import { getLatestSettings } from '@/utils/site-settings';
+import { ParticleBackground } from '@/components/animations/ParticleBackground';
+import { Header } from '@/components/layout/Header';
+import { ViewTransitions } from 'astro:transitions';
+import { createServerClient } from '@supabase/ssr';
+import '../styles/global.css';
+
+const supabase = createServerClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  {
+    cookies: {
+      get: (name) => Astro.cookies.get(name)?.value ?? '',
+      set: (name, value, options) => {
+        Astro.cookies.set(name, value, options);
+      },
+      remove: (name, options) => {
+        Astro.cookies.delete(name, options);
+      }
+    },
+  }
+);
+
+// Fetch settings from database
+const { data: settings } = await supabase
+  .from('site_settings')
+  .select('*')
+  .eq('id', 1)
+  .single();
+
+// Fetch all VPNs for the navigation menu
+const { data: vpnNavLinks, error: vpnError } = await supabase
+  .from('vpns')
+  .select('name, slug')
+  .order('name', { ascending: true });
+
+if (vpnError) {
+  console.error('Error fetching VPNs for navigation:', vpnError);
+}
+
+// Get site settings
+const siteTitle = settings?.site_title || 'AstroVPN';
+const siteTagline = settings?.site_tagline;
+
+
+
+interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+}
+const { title, description, image } = Astro.props;
+
+// Construct page title
+let finalTitle;
+if (Astro.url.pathname === '/') {
+  // Homepage: Site Title - Tagline
+  finalTitle = siteTagline ? `${siteTitle} - ${siteTagline}` : siteTitle;
+} else if (title) {
+  // Other pages: Page Title | Site Title
+  finalTitle = `${title} | ${siteTitle}`;
+} else {
+  // Fallback: just Site Title
+  finalTitle = siteTitle;
+}
+
+
+
+const siteUrl = settings?.site_url || Astro.url.origin;
+const finalDescription = description || settings?.meta_description || 'Find the best VPN for your needs. In-depth reviews, deals, and comparisons.';
+const finalImage = image || settings?.social_preview_image_url || '/social-preview.svg';
+const favicon = settings?.favicon_url || '/favicon.svg';
+const author = settings?.meta_author || 'AstroVPN Team';
+const keywords = settings?.meta_keywords || 'vpn, security, privacy, review';
+const googleAnalyticsId = settings?.google_analytics_id || '';
+const twitterHandle = settings?.twitter_handle || '';
+
+const canonicalURL = new URL(Astro.url.pathname, siteUrl).href;
+const imageURL = new URL(finalImage, Astro.url.origin).href;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <script is:inline>
+      function applyThemePolicy() {
+        const path = window.location.pathname;
+        const isBlogPage = path.startsWith('/blog');
+
+        // First, remove the dark class to reset the state.
+        document.documentElement.classList.remove('dark');
+
+        // Then, add it back only if it's not a blog page.
+        if (!isBlogPage) {
+          document.documentElement.classList.add('dark');
+        }
+        // On blog pages, the 'dark' class is simply not added, resulting in light mode.
+      }
+
+      // Apply the theme on initial page load to prevent FOUC.
+      applyThemePolicy();
+
+      // Attach the function to the window object to make it accessible to other scripts.
+      window.applyThemePolicy = applyThemePolicy;
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- Primary Meta Tags -->
+    <title>{finalTitle}</title>
+    <meta name="title" content={finalTitle} />
+    <meta name="description" content={finalDescription} />
+    <meta name="keywords" content={keywords} />
+    <meta name="author" content={author} />
+
+    <ViewTransitions />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:title" content={finalTitle} />
+    <meta property="og:description" content={finalDescription} />
+    <meta property="og:image" content={imageURL} />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content={canonicalURL} />
+    <meta property="twitter:title" content={finalTitle} />
+    <meta property="twitter:description" content={finalDescription} />
+    <meta property="twitter:image" content={imageURL} />
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- PWA & Theme -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#111827" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+    
+    
+    {/* Google Analytics */}
+    {googleAnalyticsId && (
+      <Fragment set:html={`
+        <!-- Google tag (gtag.js) -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', '${googleAnalyticsId}');
+        </script>
+      `} />
+    )}
+  </head>
+  <body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased">
+    <ParticleBackground client:visible />
+    <Header client:load vpnLinks={vpnNavLinks || []} />
+    <main class="z-10">
+      <slot />
+    </main>
+    <script>
+      import { trackPageView } from '../lib/analytics-tracker';
+
+      function handlePageTransition() {
+        // Track the new page view.
+        trackPageView();
+
+        // Re-apply the theme policy after navigation.
+        // The function is globally available from the inline script in the <head>.
+        if (window.applyThemePolicy) {
+          window.applyThemePolicy();
+        }
+      }
+
+      // On the very first page load, just track the view.
+      // The theme is already correctly set by the inline script.
+      document.addEventListener('astro:page-load', trackPageView, { once: true });
+
+      // On all subsequent client-side navigations, run our combined handler.
+      document.addEventListener('astro:after-swap', handlePageTransition);
+    </script>
+  </body>
+</html>

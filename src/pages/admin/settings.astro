@@ -1,0 +1,29 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { SiteSettingsForm } from '@/components/admin/SiteSettingsForm';
+import { forceRefreshSettings } from '@/utils/site-settings';
+
+// Check authentication
+const { supabase } = Astro.locals;
+const { data: { session } } = await supabase.auth.getSession();
+
+// Redirect to login if not authenticated
+if (!session) {
+  return Astro.redirect('/admin/login');
+}
+
+// Forçar atualização das configurações do site
+const settings = await forceRefreshSettings(Astro.cookies);
+---
+
+<AdminLayout title="Definições do Site">
+  <div class="container py-8">
+    <div class="mb-6">
+      <h1 class="text-3xl font-bold">Definições do Site</h1>
+      <p class="text-muted-foreground mt-2">Gerencie as configurações globais do seu site.</p>
+    </div>
+    
+    <!-- Formulário de configurações -->
+    <SiteSettingsForm client:load initialData={settings} />
+  </div>
+</AdminLayout>
