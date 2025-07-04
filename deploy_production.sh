@@ -70,6 +70,8 @@ SERVICE_KEY=$(openssl rand -hex 32)
 
 # --- 4. Configurar e Iniciar o Supabase ---
 echo -e "\n${C_BLUE}A configurar o Supabase...${C_NC}"
+# Garante que as dependências necessárias estão instaladas
+apt-get update && apt-get install -y unzip wget
 mkdir -p /opt # Garante que o diretório existe
 cd /opt
 if [ -d "supabase-prod" ]; then
