@@ -78,11 +78,11 @@ else
     # Anula qualquer auxiliar de credenciais que possa interferir com um clone público.
     # O '|| true' garante que o script não falha se não houver nada para anular.
     git config --global --unset-all credential.helper || true
-    git clone --depth 1 https://github.com/supabase/docker.git supabase-prod
-    if [ $? -ne 0 ]; then
-        echo -e "${C_RED}Erro: Falha ao clonar o repositório do Supabase.${C_NC}"
-        exit 1
-    fi
+    echo "A fazer download do Supabase via zip..."
+    wget -q https://github.com/supabase/docker/archive/refs/heads/master.zip -O supabase-prod.zip
+    unzip -q supabase-prod.zip
+    mv docker-master supabase-prod
+    rm supabase-prod.zip
 fi
 cd supabase-prod
 cp docker/example.env docker/.env
