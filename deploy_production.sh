@@ -49,11 +49,9 @@ ufw --force enable > /dev/null
 
 # --- 2. Recolher Informação do Utilizador ---
 echo -e "\n${C_YELLOW}Preciso de alguma informação sua:${C_NC}"
-read -p "Qual é o URL do seu repositório Git (ex: https://github.com/seu_usuario/astrovpn.git)? " GIT_REPO_URL
-if [ -z "$GIT_REPO_URL" ]; then
-    echo -e "${C_RED}Erro: O URL do repositório é obrigatório.${C_NC}"
-    exit 1
-fi
+# Define the application repository URL (hardcoded for public access)
+GIT_REPO_URL="https://github.com/speedshadow/astrovpn.git"
+echo -e "${C_BLUE}Using public repository: $GIT_REPO_URL${C_NC}"
 
 read -p "Você tem um nome de domínio para usar (s/n)? " HAS_DOMAIN
 
