@@ -75,8 +75,9 @@ cd /opt
 if [ -d "supabase-prod" ]; then
     echo "A diretoria 'supabase-prod' já existe. A saltar o clone."
 else
-    # Anular qualquer auxiliar de credenciais que possa interferir com um clone público
-    git config --global --unset-all credential.helper
+    # Anula qualquer auxiliar de credenciais que possa interferir com um clone público.
+    # O '|| true' garante que o script não falha se não houver nada para anular.
+    git config --global --unset-all credential.helper || true
     git clone --depth 1 https://github.com/supabase/docker.git supabase-prod
     if [ $? -ne 0 ]; then
         echo -e "${C_RED}Erro: Falha ao clonar o repositório do Supabase.${C_NC}"
