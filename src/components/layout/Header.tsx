@@ -213,16 +213,16 @@ export function Header({ vpnLinks }: HeaderProps) {
                   <nav className="grid gap-4">
                     {mainNav.map(link => (
                       <a key={link.href} href={link.href} className="flex items-center gap-3 rounded-md p-2 text-lg font-medium hover:bg-accent">
-                        <link.icon className="h-5 w-5" />
+                        {React.createElement(link.icon, { className: 'h-5 w-5' })}
                         {link.label}
                       </a>
                     ))}
                     <div className="pt-2">
-                      <h3 className="px-2 text-lg font-semibold flex items-center gap-3"><bestVpnsMenu.icon className="h-5 w-5" /> {bestVpnsMenu.label}</h3>
+                      <h3 className="px-2 text-lg font-semibold flex items-center gap-3">{React.createElement(bestVpnsMenu.icon, { className: 'h-5 w-5' })} {bestVpnsMenu.label}</h3>
                       <div className="grid gap-1 mt-2">
                         {bestVpnsMenu.items.map(item => (
                           <a key={item.href} href={item.href} className="flex items-center gap-3 rounded-md py-2 pl-10 pr-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-foreground">
-                            <item.icon className="h-5 w-5" />
+                            {React.createElement(item.icon, { className: 'h-5 w-5' })}
                             {item.title}
                           </a>
                         ))}
@@ -230,11 +230,11 @@ export function Header({ vpnLinks }: HeaderProps) {
                     </div>
 
                     <div className="pt-2">
-                      <h3 className="px-2 text-lg font-semibold flex items-center gap-3"><toolsMenu.icon className="h-5 w-5" /> {toolsMenu.label}</h3>
+                      <h3 className="px-2 text-lg font-semibold flex items-center gap-3">{React.createElement(toolsMenu.icon, { className: 'h-5 w-5' })} {toolsMenu.label}</h3>
                       <div className="grid gap-1 mt-2">
                         {toolsMenu.items.map(item => (
                           <a key={item.href} href={item.href} className="flex items-center gap-3 rounded-md py-2 pl-10 pr-2 text-base font-medium text-muted-foreground hover:bg-accent hover:text-foreground">
-                            <item.icon className="h-5 w-5" />
+                            {React.createElement(item.icon, { className: 'h-5 w-5' })}
                             {item.title}
                           </a>
                         ))}
