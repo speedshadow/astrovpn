@@ -63,8 +63,8 @@ read -p "Você tem um nome de domínio para usar (s/n)? " HAS_DOMAIN
 
 # --- 3. Gerar Segredos de Produção ---
 echo -e "\n${C_BLUE}A gerar segredos de produção seguros...${C_NC}"
-DB_PASSWORD=$(openssl rand -base64 32)
-JWT_SECRET=$(openssl rand -base64 32)
+DB_PASSWORD=$(openssl rand -hex 32)
+JWT_SECRET=$(openssl rand -hex 32)
 ANON_KEY=$(openssl rand -hex 32)
 SERVICE_KEY=$(openssl rand -hex 32)
 
