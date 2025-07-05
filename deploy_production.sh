@@ -294,8 +294,13 @@ EOL
       exit 1
     fi
 
-    echo -e "${C_BLUE}A iniciar o servidor da aplicação Astro com PM2...${C_NC}"
-    pm2 start ./dist/server/entry.mjs --name astrovpn -- --port 4322
+    echo -e "${C_CYAN}Parando e removendo a instância PM2 antiga...${C_NC}"
+    pm2 stop astrovpn || true
+    pm2 delete astrovpn || true
+
+    echo -e "${C_CYAN}Iniciando a aplicação com PM2 usando o script 'npm start'...${C_NC}"
+    pm2 start npm --name astrovpn -- run start
+
     pm2 startup
     pm2 save
 
