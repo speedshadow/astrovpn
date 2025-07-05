@@ -102,8 +102,13 @@ elif [ -f docker/.env.example ]; then
 elif [ -f docker/.env.sample ]; then
   cp docker/.env.sample docker/.env
 else
-  echo "Erro: Não foi encontrado nenhum ficheiro de ambiente em docker/.env, .env.example ou .env.sample."
-  exit 1
+  echo "Aviso: Nenhum ficheiro de ambiente encontrado. A criar docker/.env minimal."
+  cat > docker/.env <<EOF
+POSTGRES_PASSWORD=$DB_PASSWORD
+JWT_SECRET=$JWT_SECRET
+ANON_KEY=$ANON_KEY
+SERVICE_KEY=$SERVICE_KEY
+EOF
 fi
 
 # Substituir os segredos no ficheiro .env do Supabase
