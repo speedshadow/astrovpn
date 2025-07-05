@@ -68,7 +68,12 @@ JWT_SECRET=$(openssl rand -base64 32)
 ANON_KEY=$(openssl rand -hex 32)
 SERVICE_KEY=$(openssl rand -hex 32)
 
-# --- 4. Configurar e Iniciar o Supabase ---
+# --- 4. Configuração e Lançamento do Supabase ---
+echo -e "${C_YELLOW}A parar e a remover quaisquer contentores Supabase antigos para garantir uma instalação limpa...${C_NC}"
+if [ -f "/opt/supabase-prod/docker-compose.yml" ]; then
+    docker compose -f /opt/supabase-prod/docker-compose.yml down -v --remove-orphans > /dev/null 2>&1
+fi
+
 echo -e "\n${C_BLUE}A configurar o Supabase...${C_NC}"
 # Garante que as dependências necessárias estão instaladas
 apt-get update && apt-get install -y unzip wget
