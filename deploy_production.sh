@@ -247,16 +247,21 @@ EOL
 else
     # --- 5.2 Configuração com IP (NÃO SEGURO) ---
     # Detectar automaticamente o IP público do VPS
-    IP_ADDRESS=$(hostname -I | awk '{print $1}')
+    echo -e "${C_BLUE}A obter o IP público do VPS...${C_NC}"
+    IP_ADDRESS=$(curl -s https://ifconfig.me/ip)
     if [ -z "$IP_ADDRESS" ]; then
-        echo -e "${C_RED}Erro: Não foi possível detectar o IP público do VPS.${C_NC}"
+        echo -e "${C_RED}Erro: Não foi possível detectar o IP público do VPS usando curl.${C_NC}"
+        echo -e "${C_RED}Verifique a sua ligação à internet e que o curl está instalado.${C_NC}"
         exit 1
     fi
+    echo -e "${C_GREEN}IP público detectado: $IP_ADDRESS${C_NC}"
+
     echo -e "\n${C_RED}AVISO: Você escolheu usar um IP. O seu site NÃO TERÁ HTTPS e usará a porta 4322.${C_NC}"
     echo -e "${C_RED}Esta configuração é INSEGURA e só deve ser usada para testes.${C_NC}"
 
     SUPABASE_URL="http://$IP_ADDRESS:8000"
     APP_URL="http://$IP_ADDRESS:4322"
+    SUPABASE_DIR="/opt/supabase-prod/docker"
 
     # Criar o ficheiro .env para a aplicação Astro
     cat <<EOL > .env
@@ -269,7 +274,7 @@ EOL
 
     # Configurar o CORS no Supabase para permitir pedidos da nossa app
     echo -e "${C_BLUE}A configurar o CORS do Supabase...${C_NC}"
-    CONFIG_FILE="/opt/supabase-prod/config.toml"
+    CONFIG_FILE="$SUPABASE_DIR/config.toml"
     CORS_LINE="additional_cors_origins = [\"$APP_URL\"]"
 
     if grep -q "additional_cors_origins" "$CONFIG_FILE"; then
@@ -282,8 +287,8 @@ EOL
 
     # Expor a porta do Supabase Kong e reiniciar
     echo -e "${C_BLUE}A reiniciar o Supabase com a nova configuração...${C_NC}"
-    sed -i '/kong:/,/^\s*$/s/#- 8000:8000/- 8000:8000/' /opt/supabase-prod/docker-compose.yml
-    cd /opt/supabase-prod && docker compose up -d --force-recreate > /dev/null
+    sed -i '/kong:/,/^\s*$/s/#- 8000:8000/- 8000:8000/' "$SUPABASE_DIR/docker-compose.yml"
+    cd "$SUPABASE_DIR" && docker compose up -d --force-recreate > /dev/null
     cd /opt/app
 
     echo -e "${C_BLUE}A instalar dependências da aplicação Astro...${C_NC}"
@@ -323,7 +328,7 @@ echo -e "A sua API do Supabase está disponível em: ${C_YELLOW}$SUPABASE_URL${C
 echo -e "\n${C_RED}ATENÇÃO: GUARDE ESTES SEGREDOS NUM LOCAL SEGURO (ex: gestor de passwords).${C_NC}"
 echo -e "${C_RED}Estes são os conteúdos do seu ficheiro .env do Supabase em /opt/supabase-prod/docker/.env${C_NC}"
 echo -e "-----------------------------------------------------"
-cat /opt/supabase-prod/.env
+cat /opt/supabase-prod/docker/.env
 echo -e "-----------------------------------------------------"
 
 if [[ "$HAS_DOMAIN" =~ ^[Ss]$ ]]; then
@@ -331,5 +336,4 @@ if [[ "$HAS_DOMAIN" =~ ^[Ss]$ ]]; then
 else
     echo -e "\nPara ver os logs do seu site, corra: ${C_YELLOW}cat /opt/app/astro.log${C_NC}"
 fi
-echo -e "Para ver os logs do Supabase, corra: ${C_YELLOW}cd /opt/supabase-prod && docker compose -f docker/docker-compose.yml logs -f${C_NC}"
-
+echo -e 'Para ver os logs do Supabase, corra: \033[1;33mcd /opt/supabase-prod/docker && docker compose logs -f\033[0m'${C_NC}"
