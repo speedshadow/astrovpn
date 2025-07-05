@@ -268,9 +268,9 @@ PORT=4322
 EOL
 
     # Expor a porta do Supabase Kong
-    sed -i '/kong:/,/^\s*$/s/#- 8000:8000/- 8000:8000/' /opt/supabase-prod/docker/docker-compose.yml
+    sed -i '/kong:/,/^\s*$/s/#- 8000:8000/- 8000:8000/' /opt/supabase-prod/docker-compose.yml
     echo -e "${C_BLUE}A reiniciar o Supabase para expor a porta 8000...${C_NC}"
-    cd /opt/supabase-prod && docker compose -f docker/docker-compose.yml up -d --force-recreate > /dev/null
+    cd /opt/supabase-prod && docker compose -f docker-compose.yml up -d --force-recreate > /dev/null
     cd /opt/app
 
     echo -e "${C_BLUE}A instalar dependências da aplicação Astro...${C_NC}"
