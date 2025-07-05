@@ -113,10 +113,10 @@ fi
 
 # Substituir os segredos no ficheiro .env do Supabase
 sed -i "s|POSTGRES_PASSWORD=postgres|POSTGRES_PASSWORD=$DB_PASSWORD|g" .env
-sed -i "s|JWT_SECRET=super-secret-jwt-token-with-at-least-32-characters-long|JWT_SECRET=$JWT_SECRET|g" docker/.env
+sed -i "s|JWT_SECRET=super-secret-jwt-token-with-at-least-32-characters-long|JWT_SECRET=$JWT_SECRET|g" .env
 # As chaves no example.env são longas, por isso usamos um delimitador diferente no sed
-sed -i "s|ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0|ANON_KEY=$ANON_KEY|g" docker/.env
-sed -i "s|SERVICE_ROLE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU|SERVICE_ROLE_KEY=$SERVICE_KEY|g" docker/.env
+sed -i "s|ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0|ANON_KEY=$ANON_KEY|g" .env
+sed -i "s|SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.4VvKkK9Jv9QwqK0Fv4J4Q8kU6y7YxwQw1KkK9Jv9QwqK0Fv4J4Q8kU6y7YxwQw|SERVICE_KEY=$SERVICE_KEY|g" .env
 
 echo -e "${C_BLUE}A iniciar os contentores do Supabase... (Isto pode demorar alguns minutos)${C_NC}"
 docker compose -f docker/docker-compose.yml up -d > /dev/null
