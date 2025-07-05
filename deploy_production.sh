@@ -246,15 +246,13 @@ EOL
 
 else
     # --- 5.2 Configuração com IP (NÃO SEGURO) ---
-    # Detectar automaticamente o IP público do VPS
-    echo -e "${C_BLUE}A obter o IP público do VPS...${C_NC}"
-    IP_ADDRESS=$(curl -s https://ifconfig.me/ip)
+    # Pedir ao utilizador para introduzir o IP manualmente
+    read -p "Por favor, introduza o endereço IP público do seu VPS e pressione ENTER: " IP_ADDRESS
     if [ -z "$IP_ADDRESS" ]; then
-        echo -e "${C_RED}Erro: Não foi possível detectar o IP público do VPS usando curl.${C_NC}"
-        echo -e "${C_RED}Verifique a sua ligação à internet e que o curl está instalado.${C_NC}"
+        echo -e "\n${C_RED}Erro: Nenhum endereço IP foi introduzido. A sair.${C_NC}"
         exit 1
     fi
-    echo -e "${C_GREEN}IP público detectado: $IP_ADDRESS${C_NC}"
+    echo -e "${C_GREEN}A usar o IP fornecido: $IP_ADDRESS${C_NC}"
 
     echo -e "\n${C_RED}AVISO: Você escolheu usar um IP. O seu site NÃO TERÁ HTTPS e usará a porta 4322.${C_NC}"
     echo -e "${C_RED}Esta configuração é INSEGURA e só deve ser usada para testes.${C_NC}"
