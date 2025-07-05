@@ -153,36 +153,36 @@ for i in {1..30}; do
   echo "Aguardando Postgres... ($i/30)"
   sleep 2
 done
-if ! pg_isready -h 127.0.0.1 -p 54322 -U postgres; then
-  echo "Erro: Postgres não ficou disponível após 60 segundos."
-  exit 1
-fi
-
 echo -e "${C_BLUE}A instalar o cliente PostgreSQL...${C_NC}"
 apt-get install -y postgresql-client-common postgresql-client > /dev/null
 
-# Função para URL-encode da password
-urlencode() {
-    local LANG=C
-    local length="${#1}"
-    for (( i = 0; i < length; i++ )); do
-        local c="${1:i:1}"
-        case $c in
-            [a-zA-Z0-9.~_-]) printf "$c" ;;
-            *) printf '%%%02X' "'${c}" ;;
-        esac
-    done
-}
-ENCODED_DB_PASSWORD=$(urlencode "$DB_PASSWORD")
-MIGRATION_DB_URL="postgresql://postgres:${ENCODED_DB_PASSWORD}@127.0.0.1:54322/postgres"
-
-echo -e "${C_BLUE}A aplicar o schema da base de dados (schema.sql)...${C_NC}"
-if [ -f "schema.sql" ]; then
-    PGPASSWORD=$DB_PASSWORD psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -f schema.sql > /dev/null
-    echo -e "${C_GREEN}Schema da base de dados aplicado com sucesso.${C_NC}"
-else
-    echo -e "${C_YELLOW}Aviso: Ficheiro schema.sql não encontrado. A saltar a migração da base de dados.${C_NC}"
-fi
+echo -e "\n${C_BLUE}A aguardar que a base de dados aceite ligações autenticadas...${C_NC}"
+MAX_ATTEMPTS=30
+for i in $(seq 1 $MAX_ATTEMPTS); do
+  # Tenta executar um comando 'psql' simples. O sucesso indica que a BD está totalmente pronta.
+  if PGPASSWORD=$DB_PASSWORD psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c '\q' > /dev/null 2>&1; then
+    echo -e "${C_GREEN}Sucesso! A base de dados está pronta.${C_NC}"
+    
+    echo -e "${C_BLUE}A aplicar o schema da base de dados (schema.sql)...${C_NC}"
+    if [ -f "schema.sql" ]; then
+        PGPASSWORD=$DB_PASSWORD psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -f schema.sql > /dev/null
+        echo -e "${C_GREEN}Schema da base de dados aplicado com sucesso.${C_NC}"
+    else
+        echo -e "${C_YELLOW}Aviso: Ficheiro schema.sql não encontrado. A saltar a migração da base de dados.${C_NC}"
+    fi
+    
+    # Se a migração foi bem-sucedida, sai do loop de espera.
+    break
+  fi
+  
+  if [ "$i" -eq "$MAX_ATTEMPTS" ]; then
+    echo -e "${C_RED}Erro: A base de dados não ficou pronta para aceitar ligações após 60 segundos.${C_NC}"
+    exit 1
+  fi
+  
+  echo "A aguardar pela base de dados... (tentativa $i/$MAX_ATTEMPTS)"
+  sleep 2
+done
 
 # --- Lógica Condicional para Domínio ou IP ---
 if [[ "$HAS_DOMAIN" =~ ^[Ss]$ ]]; then
