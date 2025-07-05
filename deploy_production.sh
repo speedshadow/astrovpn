@@ -259,7 +259,7 @@ else
 
     SUPABASE_URL="http://$IP_ADDRESS:8000"
     APP_URL="http://$IP_ADDRESS:4322"
-    SUPABASE_DIR="/opt/supabase-prod/docker"
+    SUPABASE_DIR="/opt/supabase-prod" # CORRECÇÃO: O directório base é este
 
     # Criar o ficheiro .env para a aplicação Astro
     cat <<EOL > .env
@@ -273,7 +273,7 @@ EOL
     # Configurar o CORS no Supabase para permitir pedidos da nossa app
     echo -e "${C_BLUE}A configurar o CORS do Supabase...${C_NC}"
 
-    # O ficheiro config.toml está em volumes/config, não na raiz do docker.
+    # CORRECÇÃO: O ficheiro config.toml está em volumes/config.
     CONFIG_TEMPLATE="$SUPABASE_DIR/volumes/config/config.toml.example"
     CONFIG_FILE="$SUPABASE_DIR/volumes/config/config.toml"
 
@@ -281,24 +281,28 @@ EOL
     if [ ! -f "$CONFIG_FILE" ] && [ -f "$CONFIG_TEMPLATE" ]; then
         echo "A criar 'config.toml' a partir do template..."
         cp "$CONFIG_TEMPLATE" "$CONFIG_FILE"
+    elif [ ! -f "$CONFIG_FILE" ]; then
+        echo -e "${C_RED}ERRO: Não foi possível encontrar nem o config.toml nem o seu template. A configuração do CORS vai falhar.${C_NC}"
     fi
 
     CORS_LINE="additional_cors_origins = [\"$APP_URL\"]"
 
-    # Modificar o ficheiro de configuração
-    if grep -q "additional_cors_origins" "$CONFIG_FILE"; then
-        # A linha já existe, substitui-a
-        sed -i "s|^additional_cors_origins.*|$CORS_LINE|" "$CONFIG_FILE"
-    elif grep -q "\[rest\]" "$CONFIG_FILE"; then
-        # A secção [rest] existe, adiciona a linha depois dela
-        sed -i "/\[rest\]/a $CORS_LINE" "$CONFIG_FILE"
+    # Modificar o ficheiro de configuração, se ele existir
+    if [ -f "$CONFIG_FILE" ]; then
+        if grep -q "additional_cors_origins" "$CONFIG_FILE"; then
+            sed -i "s|^additional_cors_origins.*|$CORS_LINE|" "$CONFIG_FILE"
+        elif grep -q "\[rest\]" "$CONFIG_FILE"; then
+            sed -i "/\[rest\]/a $CORS_LINE" "$CONFIG_FILE"
+        else
+            echo -e "\n[rest]\n$CORS_LINE" >> "$CONFIG_FILE"
+        fi
     else
-        # Nem a linha nem a secção existem, adiciona ambas no fim do ficheiro
-        echo -e "\n[rest]\n$CORS_LINE" >> "$CONFIG_FILE"
+        echo -e "${C_RED}AVISO: O ficheiro config.toml não foi encontrado. A saltar a configuração do CORS.${C_NC}"
     fi
 
     # Expor a porta do Supabase Kong e reiniciar
     echo -e "${C_BLUE}A reiniciar o Supabase com a nova configuração...${C_NC}"
+    # CORRECÇÃO: O docker-compose.yml está na raiz do directório do Supabase
     sed -i '/kong:/,/^\s*$/s/#- 8000:8000/- 8000:8000/' "$SUPABASE_DIR/docker-compose.yml"
     cd "$SUPABASE_DIR" && docker compose up -d --force-recreate > /dev/null
     cd /opt/app
@@ -326,7 +330,6 @@ EOL
 
     pm2 startup
     pm2 save
-
 fi
 
 # --- 6. Conclusão e Informação Importante ---
@@ -348,4 +351,4 @@ if [[ "$HAS_DOMAIN" =~ ^[Ss]$ ]]; then
 else
     echo -e "\nPara ver os logs do seu site, corra: ${C_YELLOW}cat /opt/app/astro.log${C_NC}"
 fi
-echo -e 'Para ver os logs do Supabase, corra: \033[1;33mcd /opt/supabase-prod/docker && docker compose logs -f\033[0m'${C_NC}"
+echo -e 'Para ver os logs do Supabase, corra: \033[1;33mcd /opt/supabase-prod && docker compose logs -f\033[0m'${C_NC}"
