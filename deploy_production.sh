@@ -280,11 +280,19 @@ EOL
     cd /opt/supabase-prod && docker compose -f docker/docker-compose.yml up -d --force-recreate > /dev/null
     cd /opt/app
 
-    echo -e "${C_BLUE}A instalar dependências e a iniciar o site em modo de produção...${C_NC}"
-    npm install > /dev/null
-    npm run build > /dev/null
-    echo -e "${C_BLUE}A instalar o gestor de processos PM2...${C_NC}"
-    npm install -g pm2 > /dev/null
+    echo -e "${C_BLUE}A instalar dependências da aplicação Astro...${C_NC}"
+    npm install || { echo -e "${C_RED}Erro ao instalar dependências com npm install.${C_NC}"; exit 1; }
+
+    echo -e "${C_BLUE}A construir a aplicação Astro...${C_NC}"
+    npm run build || { echo -e "${C_RED}Erro ao construir a aplicação com npm run build.${C_NC}"; exit 1; }
+
+    echo -e "${C_BLUE}A garantir que o PM2 está instalado globalmente...${C_NC}"
+    npm list -g pm2 > /dev/null 2>&1 || npm install -g pm2 || { echo -e "${C_RED}Erro ao instalar o PM2 globalmente.${C_NC}"; exit 1; }
+
+    if [ ! -f ./dist/server/entry.mjs ]; then
+      echo -e "${C_RED}Erro: O ficheiro ./dist/server/entry.mjs não existe. A build falhou ou o caminho está incorreto.${C_NC}"
+      exit 1
+    fi
 
     echo -e "${C_BLUE}A iniciar o servidor da aplicação Astro com PM2...${C_NC}"
     pm2 start ./dist/server/entry.mjs --name astrovpn -- --port 4322
