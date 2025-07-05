@@ -95,15 +95,15 @@ else
     rm -rf supabase.zip supabase-master
 fi
 cd supabase-prod
-if [ -f docker/.env ]; then
-  echo "Ficheiro docker/.env já existe. A usar este ficheiro."
-elif [ -f docker/.env.example ]; then
-  cp docker/.env.example docker/.env
-elif [ -f docker/.env.sample ]; then
-  cp docker/.env.sample docker/.env
+if [ -f .env ]; then
+  echo "Ficheiro .env já existe. A usar este ficheiro."
+elif [ -f .env.example ]; then
+  cp .env.example .env
+elif [ -f .env.sample ]; then
+  cp .env.sample .env
 else
-  echo "Aviso: Nenhum ficheiro de ambiente encontrado. A criar docker/.env minimal."
-  cat > docker/.env <<EOF
+  echo "Aviso: Nenhum ficheiro de ambiente encontrado. A criar .env minimal."
+  cat > .env <<EOF
 POSTGRES_PASSWORD=$DB_PASSWORD
 JWT_SECRET=$JWT_SECRET
 ANON_KEY=$ANON_KEY
@@ -112,7 +112,7 @@ EOF
 fi
 
 # Substituir os segredos no ficheiro .env do Supabase
-sed -i "s|POSTGRES_PASSWORD=postgres|POSTGRES_PASSWORD=$DB_PASSWORD|g" docker/.env
+sed -i "s|POSTGRES_PASSWORD=postgres|POSTGRES_PASSWORD=$DB_PASSWORD|g" .env
 sed -i "s|JWT_SECRET=super-secret-jwt-token-with-at-least-32-characters-long|JWT_SECRET=$JWT_SECRET|g" docker/.env
 # As chaves no example.env são longas, por isso usamos um delimitador diferente no sed
 sed -i "s|ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0|ANON_KEY=$ANON_KEY|g" docker/.env
