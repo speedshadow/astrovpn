@@ -95,7 +95,14 @@ else
     rm -rf supabase.zip supabase-master
 fi
 cd supabase-prod
-cp docker/example.env docker/.env
+if [ -f docker/.env.example ]; then
+  cp docker/.env.example docker/.env
+elif [ -f docker/.env.sample ]; then
+  cp docker/.env.sample docker/.env
+else
+  echo "Erro: Não foi encontrado um ficheiro de exemplo .env em docker/.env.example ou docker/.env.sample."
+  exit 1
+fi
 
 # Substituir os segredos no ficheiro .env do Supabase
 sed -i "s|POSTGRES_PASSWORD=postgres|POSTGRES_PASSWORD=$DB_PASSWORD|g" docker/.env
