@@ -142,41 +142,29 @@ git clone "$GIT_REPO_URL" app > /dev/null
 cd app
 
 # --- 5.A Aplicar Schema da Base de Dados ---
-echo -e "\n${C_BLUE}A aguardar que a base de dados do Supabase esteja pronta...${C_NC}"
-
-# Esperar até que o Postgres esteja disponível em 127.0.0.1:54322
-for i in {1..30}; do
-  if pg_isready -h 127.0.0.1 -p 54322 -U postgres; then
-    echo "Postgres está pronto!"
-    break
-  fi
-  echo "Aguardando Postgres... ($i/30)"
-  sleep 2
-done
-echo -e "${C_BLUE}A instalar o cliente PostgreSQL...${C_NC}"
-apt-get install -y postgresql-client-common postgresql-client > /dev/null
-
-echo -e "\n${C_BLUE}A aguardar que a base de dados aceite ligações autenticadas...${C_NC}"
+echo -e "\n${C_BLUE}A aguardar que a base de dados do Supabase esteja pronta (a executar de dentro do contentor)...${C_NC}"
 MAX_ATTEMPTS=30
 for i in $(seq 1 $MAX_ATTEMPTS); do
-  # Tenta executar um comando 'psql' simples. O sucesso indica que a BD está totalmente pronta.
-  if PGPASSWORD=$DB_PASSWORD psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -c '\q' > /dev/null 2>&1; then
+  # Executa o comando psql DENTRO do contentor da base de dados. Esta é a forma mais fiável.
+  if docker compose -f /opt/supabase-prod/docker-compose.yml exec -T -e PGPASSWORD=$DB_PASSWORD db psql -U postgres -h localhost -c '\q' > /dev/null 2>&1; then
     echo -e "${C_GREEN}Sucesso! A base de dados está pronta.${C_NC}"
     
     echo -e "${C_BLUE}A aplicar o schema da base de dados (schema.sql)...${C_NC}"
     if [ -f "schema.sql" ]; then
-        PGPASSWORD=$DB_PASSWORD psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -f schema.sql > /dev/null
+        # Copia o schema para o contentor e depois aplica-o
+        docker cp schema.sql $(docker compose -f /opt/supabase-prod/docker-compose.yml ps -q db):/tmp/schema.sql
+        docker compose -f /opt/supabase-prod/docker-compose.yml exec -T -e PGPASSWORD=$DB_PASSWORD db psql -U postgres -d postgres -f /tmp/schema.sql
         echo -e "${C_GREEN}Schema da base de dados aplicado com sucesso.${C_NC}"
     else
         echo -e "${C_YELLOW}Aviso: Ficheiro schema.sql não encontrado. A saltar a migração da base de dados.${C_NC}"
     fi
     
-    # Se a migração foi bem-sucedida, sai do loop de espera.
-    break
+    break # Sai do loop de espera
   fi
   
   if [ "$i" -eq "$MAX_ATTEMPTS" ]; then
     echo -e "${C_RED}Erro: A base de dados não ficou pronta para aceitar ligações após 60 segundos.${C_NC}"
+    docker compose -f /opt/supabase-prod/docker-compose.yml logs db
     exit 1
   fi
   
