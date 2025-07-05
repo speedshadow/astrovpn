@@ -272,14 +272,28 @@ EOL
 
     # Configurar o CORS no Supabase para permitir pedidos da nossa app
     echo -e "${C_BLUE}A configurar o CORS do Supabase...${C_NC}"
-    CONFIG_FILE="$SUPABASE_DIR/config.toml"
+
+    # O ficheiro config.toml está em volumes/config, não na raiz do docker.
+    CONFIG_TEMPLATE="$SUPABASE_DIR/volumes/config/config.toml.example"
+    CONFIG_FILE="$SUPABASE_DIR/volumes/config/config.toml"
+
+    # Garantir que o ficheiro de configuração existe, copiando-o do template
+    if [ ! -f "$CONFIG_FILE" ] && [ -f "$CONFIG_TEMPLATE" ]; then
+        echo "A criar 'config.toml' a partir do template..."
+        cp "$CONFIG_TEMPLATE" "$CONFIG_FILE"
+    fi
+
     CORS_LINE="additional_cors_origins = [\"$APP_URL\"]"
 
+    # Modificar o ficheiro de configuração
     if grep -q "additional_cors_origins" "$CONFIG_FILE"; then
+        # A linha já existe, substitui-a
         sed -i "s|^additional_cors_origins.*|$CORS_LINE|" "$CONFIG_FILE"
     elif grep -q "\[rest\]" "$CONFIG_FILE"; then
+        # A secção [rest] existe, adiciona a linha depois dela
         sed -i "/\[rest\]/a $CORS_LINE" "$CONFIG_FILE"
     else
+        # Nem a linha nem a secção existem, adiciona ambas no fim do ficheiro
         echo -e "\n[rest]\n$CORS_LINE" >> "$CONFIG_FILE"
     fi
 
