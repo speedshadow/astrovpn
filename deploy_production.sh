@@ -119,7 +119,7 @@ sed -i "s|ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1k
 sed -i "s|SERVICE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.4VvKkK9Jv9QwqK0Fv4J4Q8kU6y7YxwQw1KkK9Jv9QwqK0Fv4J4Q8kU6y7YxwQw|SERVICE_KEY=$SERVICE_KEY|g" .env
 
 echo -e "${C_BLUE}A iniciar os contentores do Supabase... (Isto pode demorar alguns minutos)${C_NC}"
-docker compose -f docker/docker-compose.yml up -d > /dev/null
+docker compose -f docker-compose.yml up -d > /dev/null
 
 # --- 5. Configurar a Aplicação Astro ---
 echo -e "\n${C_BLUE}A configurar a sua aplicação Astro...${C_NC}"
