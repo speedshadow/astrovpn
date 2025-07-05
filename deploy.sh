@@ -32,8 +32,8 @@ fi
 if [ ! -d "supabase-project" ]; then
     mkdir supabase-project
 fi
-cp -rf supabase/docker/* supabase-project
-cp supabase/docker/.env.example supabase-project/.env
+cp -rf supabase/packages/docker/* supabase-project
+cp supabase/packages/docker/.env.example supabase-project/.env
 
 # --- 3.1. Copiar código do frontend Astro para dentro do projeto Supabase ---
 if [ -d "supabase-project/astro-frontend" ]; then
