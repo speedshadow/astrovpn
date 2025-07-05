@@ -173,7 +173,7 @@ MIGRATION_DB_URL="postgresql://postgres:${ENCODED_DB_PASSWORD}@127.0.0.1:54322/p
 
 echo -e "${C_BLUE}A aplicar o schema da base de dados (schema.sql)...${C_NC}"
 if [ -f "schema.sql" ]; then
-    PGPASSWORD=$DB_PASSWORD psql "$MIGRATION_DB_URL" -f schema.sql > /dev/null
+    PGPASSWORD=$DB_PASSWORD psql -h 127.0.0.1 -p 54322 -U postgres -d postgres -f schema.sql > /dev/null
     echo -e "${C_GREEN}Schema da base de dados aplicado com sucesso.${C_NC}"
 else
     echo -e "${C_YELLOW}Aviso: Ficheiro schema.sql não encontrado. A saltar a migração da base de dados.${C_NC}"
