@@ -95,12 +95,14 @@ else
     rm -rf supabase.zip supabase-master
 fi
 cd supabase-prod
-if [ -f docker/.env.example ]; then
+if [ -f docker/.env ]; then
+  echo "Ficheiro docker/.env já existe. A usar este ficheiro."
+elif [ -f docker/.env.example ]; then
   cp docker/.env.example docker/.env
 elif [ -f docker/.env.sample ]; then
   cp docker/.env.sample docker/.env
 else
-  echo "Erro: Não foi encontrado um ficheiro de exemplo .env em docker/.env.example ou docker/.env.sample."
+  echo "Erro: Não foi encontrado nenhum ficheiro de ambiente em docker/.env, .env.example ou .env.sample."
   exit 1
 fi
 
