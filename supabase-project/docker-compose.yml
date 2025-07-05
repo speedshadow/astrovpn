@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  # Serviço do frontend Astro
+  astro-frontend:
+    build:
+      context: ./astro-frontend
+      dockerfile: Dockerfile
+    container_name: astro_frontend
+    restart: always
+    environment:
+      - PUBLIC_SUPABASE_URL=http://kong:8000
+      - PUBLIC_SUPABASE_ANON_KEY=${ANON_KEY}
+      - PORT=4322
+    ports:
+      - "4322:4322"
+    depends_on:
+      - kong
+
+# Incluir todos os serviços oficiais do Supabase
+# (copiados do diretório docker do supabase oficial)
+# Os serviços do Supabase são definidos logo abaixo ou via include, conforme a estrutura copiada
+
+# ... aqui seguem os serviços do Supabase copiados do compose oficial ...
+
+# Exemplo de como ficaria, mas o script copiará todos os serviços reais:
+#
+#  db:
+#    image: supabase/postgres
+#    ...
+#  kong:
+#    image: supabase/kong
+#    ...
+#  ...
