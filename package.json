@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node -r dotenv/config ./node_modules/.bin/astro dev --port 4322",
     "build": "astro build",
+    "start": "node -r dotenv/config ./dist/server/entry.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },
