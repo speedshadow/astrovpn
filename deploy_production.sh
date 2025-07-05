@@ -129,11 +129,23 @@ cd app
 
 # --- 5.A Aplicar Schema da Base de Dados ---
 echo -e "\n${C_BLUE}A aguardar que a base de dados do Supabase esteja pronta...${C_NC}"
-sleep 30 # Dar tempo para o contentor da BD iniciar completamente
+
+# Esperar até que o Postgres esteja disponível em 127.0.0.1:54322
+for i in {1..30}; do
+  if pg_isready -h 127.0.0.1 -p 54322 -U postgres; then
+    echo "Postgres está pronto!"
+    break
+  fi
+  echo "Aguardando Postgres... ($i/30)"
+  sleep 2
+done
+if ! pg_isready -h 127.0.0.1 -p 54322 -U postgres; then
+  echo "Erro: Postgres não ficou disponível após 60 segundos."
+  exit 1
+fi
 
 echo -e "${C_BLUE}A instalar o cliente PostgreSQL...${C_NC}"
 apt-get install -y postgresql-client-common postgresql-client > /dev/null
-
 MIGRATION_DB_URL="postgresql://postgres:$DB_PASSWORD@127.0.0.1:54322/postgres"
 
 echo -e "${C_BLUE}A aplicar o schema da base de dados (schema.sql)...${C_NC}"
@@ -218,14 +230,14 @@ EOL
 
 else
     # --- 5.2 Configuração com IP (NÃO SEGURO) ---
-    read -p "Qual é o endereço IP público do seu VPS? " IP_ADDRESS
+    # Detectar automaticamente o IP público do VPS
+    IP_ADDRESS=$(hostname -I | awk '{print $1}')
     if [ -z "$IP_ADDRESS" ]; then
-        echo -e "${C_RED}Erro: O endereço IP é obrigatório.${C_NC}"
+        echo -e "${C_RED}Erro: Não foi possível detectar o IP público do VPS.${C_NC}"
         exit 1
     fi
     echo -e "\n${C_RED}AVISO: Você escolheu usar um IP. O seu site NÃO TERÁ HTTPS e usará a porta 4322.${C_NC}"
     echo -e "${C_RED}Esta configuração é INSEGURA e só deve ser usada para testes.${C_NC}"
-    read -p "Pressione [Enter] para continuar se compreende os riscos."
 
     SUPABASE_URL="http://$IP_ADDRESS:8000"
     APP_URL="http://$IP_ADDRESS:4322"
