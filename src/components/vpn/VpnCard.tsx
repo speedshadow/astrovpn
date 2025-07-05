@@ -68,7 +68,7 @@ const getSupportedDevices = (devices: any): string[] => {
   return [];
 };
 
-const VpnCard = ({ vpn, rank }: VpnCardProps) => {
+export const VpnCard = ({ vpn, rank }: VpnCardProps) => {
   const supportedDevices = getSupportedDevices(vpn.supported_devices);
 
   const shouldShowServers = typeof vpn.server_count === 'number' && vpn.server_count > 0;
