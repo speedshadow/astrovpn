@@ -246,7 +246,6 @@ EOL
 
 else
     # --- 5.2 Configuração com IP (NÃO SEGURO) ---
-    # Pedir ao utilizador para introduzir o IP manualmente
     read -p "Por favor, introduza o endereço IP público do seu VPS e pressione ENTER: " IP_ADDRESS
     if [ -z "$IP_ADDRESS" ]; then
         echo -e "\n${C_RED}Erro: Nenhum endereço IP foi introduzido. A sair.${C_NC}"
@@ -259,7 +258,6 @@ else
 
     SUPABASE_URL="http://$IP_ADDRESS:8000"
     APP_URL="http://$IP_ADDRESS:4322"
-    SUPABASE_DIR="/opt/supabase-prod" # CORRECÇÃO: O directório base é este
 
     # Criar o ficheiro .env para a aplicação Astro
     cat <<EOL > .env
@@ -273,9 +271,9 @@ EOL
     # Configurar o CORS no Supabase para permitir pedidos da nossa app
     echo -e "${C_BLUE}A configurar o CORS do Supabase...${C_NC}"
 
-    # CORRECÇÃO: O ficheiro config.toml está em volumes/config.
-    CONFIG_TEMPLATE="$SUPABASE_DIR/volumes/config/config.toml.example"
-    CONFIG_FILE="$SUPABASE_DIR/volumes/config/config.toml"
+    # CORRECÇÃO DEFINITIVA: Usar os caminhos completos e correctos
+    CONFIG_TEMPLATE="/opt/supabase-prod/docker/volumes/config/config.toml.example"
+    CONFIG_FILE="/opt/supabase-prod/docker/volumes/config/config.toml"
 
     # Garantir que o ficheiro de configuração existe, copiando-o do template
     if [ ! -f "$CONFIG_FILE" ] && [ -f "$CONFIG_TEMPLATE" ]; then
@@ -302,9 +300,10 @@ EOL
 
     # Expor a porta do Supabase Kong e reiniciar
     echo -e "${C_BLUE}A reiniciar o Supabase com a nova configuração...${C_NC}"
-    # CORRECÇÃO: O docker-compose.yml está na raiz do directório do Supabase
-    sed -i '/kong:/,/^\s*$/s/#- 8000:8000/- 8000:8000/' "$SUPABASE_DIR/docker-compose.yml"
-    cd "$SUPABASE_DIR" && docker compose up -d --force-recreate > /dev/null
+    
+    # CORRECÇÃO DEFINITIVA: Usar os caminhos completos e correctos
+    sed -i '/kong:/,/^\s*$/s/#- 8000:8000/- 8000:8000/' "/opt/supabase-prod/docker/docker-compose.yml"
+    cd "/opt/supabase-prod/docker" && docker compose up -d --force-recreate > /dev/null
     cd /opt/app
 
     echo -e "${C_BLUE}A instalar dependências da aplicação Astro...${C_NC}"
@@ -351,4 +350,4 @@ if [[ "$HAS_DOMAIN" =~ ^[Ss]$ ]]; then
 else
     echo -e "\nPara ver os logs do seu site, corra: ${C_YELLOW}cat /opt/app/astro.log${C_NC}"
 fi
-echo -e 'Para ver os logs do Supabase, corra: \033[1;33mcd /opt/supabase-prod && docker compose logs -f\033[0m'${C_NC}"
+echo -e 'Para ver os logs do Supabase, corra: \033[1;33mcd /opt/supabase-prod/docker && docker compose logs -f\033[0m'${C_NC}"
