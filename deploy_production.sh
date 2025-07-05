@@ -267,10 +267,23 @@ DATABASE_URL=postgresql://postgres:$DB_PASSWORD@127.0.0.1:54322/postgres
 PORT=4322
 EOL
 
-    # Expor a porta do Supabase Kong
+    # Configurar o CORS no Supabase para permitir pedidos da nossa app
+    echo -e "${C_BLUE}A configurar o CORS do Supabase...${C_NC}"
+    CONFIG_FILE="/opt/supabase-prod/config.toml"
+    CORS_LINE="additional_cors_origins = [\"$APP_URL\"]"
+
+    if grep -q "additional_cors_origins" "$CONFIG_FILE"; then
+        sed -i "s|^additional_cors_origins.*|$CORS_LINE|" "$CONFIG_FILE"
+    elif grep -q "\[rest\]" "$CONFIG_FILE"; then
+        sed -i "/\[rest\]/a $CORS_LINE" "$CONFIG_FILE"
+    else
+        echo -e "\n[rest]\n$CORS_LINE" >> "$CONFIG_FILE"
+    fi
+
+    # Expor a porta do Supabase Kong e reiniciar
+    echo -e "${C_BLUE}A reiniciar o Supabase com a nova configuração...${C_NC}"
     sed -i '/kong:/,/^\s*$/s/#- 8000:8000/- 8000:8000/' /opt/supabase-prod/docker-compose.yml
-    echo -e "${C_BLUE}A reiniciar o Supabase para expor a porta 8000...${C_NC}"
-    cd /opt/supabase-prod && docker compose -f docker-compose.yml up -d --force-recreate > /dev/null
+    cd /opt/supabase-prod && docker compose up -d --force-recreate > /dev/null
     cd /opt/app
 
     echo -e "${C_BLUE}A instalar dependências da aplicação Astro...${C_NC}"
@@ -310,7 +323,7 @@ echo -e "A sua API do Supabase está disponível em: ${C_YELLOW}$SUPABASE_URL${C
 echo -e "\n${C_RED}ATENÇÃO: GUARDE ESTES SEGREDOS NUM LOCAL SEGURO (ex: gestor de passwords).${C_NC}"
 echo -e "${C_RED}Estes são os conteúdos do seu ficheiro .env do Supabase em /opt/supabase-prod/docker/.env${C_NC}"
 echo -e "-----------------------------------------------------"
-cat /opt/supabase-prod/docker/.env
+cat /opt/supabase-prod/.env
 echo -e "-----------------------------------------------------"
 
 if [[ "$HAS_DOMAIN" =~ ^[Ss]$ ]]; then
