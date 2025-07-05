@@ -124,6 +124,7 @@ docker compose -f docker-compose.yml up -d > /dev/null
 # --- 5. Configurar a Aplicação Astro ---
 echo -e "\n${C_BLUE}A configurar a sua aplicação Astro...${C_NC}"
 cd /opt
+rm -rf app
 git clone "$GIT_REPO_URL" app > /dev/null
 cd app
 
