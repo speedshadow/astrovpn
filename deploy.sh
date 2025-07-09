@@ -47,6 +47,30 @@ else
     echo -e "${C_YELLOW}AVISO: O Supabase será exposto em $SITE_URL sem HTTPS. Use um domínio para produção.${C_NC}"
 fi
 
+# Obter a configuração oficial do Supabase
+echo -e "\n${C_BLUE}A obter a configuração oficial do Supabase...${C_NC}"
+
+# Criar diretório temporário
+TMP_DIR=$(mktemp -d)
+cd "$TMP_DIR"
+
+# Obter apenas os ficheiros necessários do repositório Supabase
+git clone --filter=blob:none --no-checkout https://github.com/supabase/supabase
+cd supabase
+git sparse-checkout set --cone docker
+git checkout master
+cd ..
+
+# Copiar os ficheiros para o diretório do projeto
+echo -e "${C_BLUE}A copiar os ficheiros de configuração oficiais...${C_NC}"
+cp -rf supabase/docker/* "$(dirname "$0")/"
+
+# Voltar ao diretório do projeto
+cd "$(dirname "$0")"
+
+# Limpar diretório temporário
+rm -rf "$TMP_DIR"
+
 # --- 4. Geração do .env ---
 echo -e "\n${C_BLUE}A gerar o ficheiro .env com novos segredos...${C_NC}"
 chmod +x ./generate-env.sh
@@ -54,6 +78,7 @@ chmod +x ./generate-env.sh
 
 # --- 5. Deploy com Docker Compose ---
 echo -e "\n${C_BLUE}A iniciar todos os serviços do Supabase com Docker Compose...${C_NC}"
+docker compose pull
 docker compose up -d --build
 
 # --- 6. Verificação de Estado e Conclusão ---
