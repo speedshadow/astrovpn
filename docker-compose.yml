@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   db:
     image: supabase/postgres:15.1.0.145
@@ -7,36 +5,52 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
     env_file: .env
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U supabase"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   rest:
-    image: supabase/postgrest:latest
+    image: postgrest/postgrest:v12.0.2
+    restart: always
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file: .env
 
   auth:
-    image: supabase/gotrue:latest
+    image: supabase/gotrue:v2.145.0
+    restart: always
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file: .env
 
   storage:
-    image: supabase/storage-api:latest
+    image: supabase/storage-api:v1.0.9
+    restart: always
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     env_file: .env
 
   kong:
-    image: supabase/kong:latest
+    image: kong:3.4
+    restart: always
     depends_on:
-      - db
-      - rest
-      - auth
-      - storage
+      rest: { condition: service_started }
+      auth: { condition: service_started }
+      storage: { condition: service_started }
     env_file: .env
     ports:
       - "8000:8000"
       - "8443:8443"
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   db_data:
