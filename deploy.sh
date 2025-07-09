@@ -183,19 +183,19 @@ clean_previous_install() {
     echo -e "\n${C_BLUE}Limpando instalação anterior...${C_NC}"
     
     # Parar todos os containers e remover volumes
-    if [ -d "/root/astrovpn" ]; then
-        cd /root/astrovpn
+    if [ -d "/astrovpn" ]; then
+        cd /astrovpn
         docker compose down -v || true
     fi
 
     # Remover diretório astrovpn
-    echo -e "${C_YELLOW}Removendo diretório /root/astrovpn...${C_NC}"
-    rm -rf /root/astrovpn
+    echo -e "${C_YELLOW}Removendo diretório /astrovpn...${C_NC}"
+    rm -rf /astrovpn
 
     # Criar novo diretório
-    echo -e "${C_GREEN}Criando novo diretório /root/astrovpn...${C_NC}"
-    mkdir -p /root/astrovpn
-    cd /root/astrovpn
+    echo -e "${C_GREEN}Criando novo diretório /astrovpn...${C_NC}"
+    mkdir -p /astrovpn
+    cd /astrovpn
 }
 
 # Função principal
