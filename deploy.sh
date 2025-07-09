@@ -65,6 +65,27 @@ git clone --depth 1 https://github.com/supabase/supabase.git $SUPABASE_DIR || { 
 cd $SUPABASE_DIR/docker || { echo -e "${C_RED}ERRO: Falha ao aceder à pasta docker${C_NC}"; exit 2; }
 cp .env.example .env || { echo -e "${C_RED}ERRO: Falha ao copiar .env.example${C_NC}"; exit 2; }
 
+# --- Garante que todas as variáveis críticas de password e segredos estão presentes no .env ---
+add_env_if_missing() {
+  VAR="$1"
+  VAL="$2"
+  grep -q "^$VAR=" .env || echo "$VAR=$VAL" >> .env
+}
+
+# Lista de variáveis sensíveis do .env.example oficial do Supabase
+for v in \
+  POSTGRES_PASSWORD JWT_SECRET ANON_KEY SERVICE_ROLE_KEY DASHBOARD_PASSWORD SECRET_KEY_BASE VAULT_ENC_KEY \
+  LOGFLARE_PUBLIC_ACCESS_TOKEN LOGFLARE_PRIVATE_ACCESS_TOKEN \
+  SMTP_PASS \
+  ; do
+  add_env_if_missing "$v" "PLACEHOLDER"
+done
+
+# Adiciona variáveis de password comuns de serviços Supabase
+for v in AUTHENTICATOR_PASSWORD ANON_PASSWORD SUPABASE_AUTH_ADMIN_PASSWORD; do
+  add_env_if_missing "$v" "PLACEHOLDER"
+done
+
 # Função para percent-encode (URL encode) passwords/secrets
 urlencode() {
   local LANG=C
@@ -78,34 +99,46 @@ urlencode() {
   done
 }
 
-# Gerar segredos automaticamente
-JWT_SECRET=$(openssl rand -base64 32)
-ANON_KEY=$(openssl rand -hex 32)
-SERVICE_KEY_RAW=$(openssl rand -hex 32)
-SERVICE_KEY=$(urlencode "$SERVICE_KEY_RAW")
-
-# Substituir todas as variáveis *_PASSWORD do .env por passwords seguras e percent-encoded
+# Gerar e substituir segredos automaticamente para todas as variáveis sensíveis
 for var in $(grep -o '^[A-Z0-9_]*_PASSWORD' .env | sort | uniq); do
   RAW=$(openssl rand -base64 32)
   ENC=$(urlencode "$RAW")
   sed -i "s|^$var=.*|$var=$ENC|g" .env
-  if [[ "$var" == "POSTGRES_PASSWORD" ]]; then
-    POSTGRES_PASSWORD_RAW="$RAW"
-    POSTGRES_PASSWORD="$ENC"
-  fi
-  if [[ "$var" == "AUTHENTICATOR_PASSWORD" ]]; then
-    AUTHENTICATOR_PASSWORD_RAW="$RAW"
-    AUTHENTICATOR_PASSWORD="$ENC"
-  fi
-  # Adiciona mais casos se precisares das passwords em variáveis para outros usos
-  # Exemplo: exportar para outros serviços
-  # ...
 done
-
-# Substituir as outras chaves normalmente
-sed -i "s|JWT_SECRET=.*|JWT_SECRET=$JWT_SECRET|g" .env
-sed -i "s|ANON_KEY=.*|ANON_KEY=$ANON_KEY|g" .env
-sed -i "s|SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$SERVICE_KEY|g" .env
+for var in $(grep -o '^[A-Z0-9_]*_KEY' .env | sort | uniq); do
+  RAW=$(openssl rand -hex 32)
+  ENC=$(urlencode "$RAW")
+  sed -i "s|^$var=.*|$var=$ENC|g" .env
+done
+for var in $(grep -o '^[A-Z0-9_]*_SECRET' .env | sort | uniq); do
+  RAW=$(openssl rand -base64 32)
+  ENC=$(urlencode "$RAW")
+  sed -i "s|^$var=.*|$var=$ENC|g" .env
+done
+for var in $(grep -o '^[A-Z0-9_]*_TOKEN' .env | sort | uniq); do
+  RAW=$(openssl rand -hex 32)
+  ENC=$(urlencode "$RAW")
+  sed -i "s|^$var=.*|$var=$ENC|g" .env
+done
+# Segredos específicos
+JWT_SECRET=$(openssl rand -base64 32)
+sed -i "s|^JWT_SECRET=.*|JWT_SECRET=$JWT_SECRET|g" .env
+ANON_KEY=$(openssl rand -hex 32)
+sed -i "s|^ANON_KEY=.*|ANON_KEY=$ANON_KEY|g" .env
+SERVICE_ROLE_KEY=$(openssl rand -hex 32)
+sed -i "s|^SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY|g" .env
+SECRET_KEY_BASE=$(openssl rand -base64 64)
+sed -i "s|^SECRET_KEY_BASE=.*|SECRET_KEY_BASE=$SECRET_KEY_BASE|g" .env
+VAULT_ENC_KEY=$(openssl rand -base64 32)
+sed -i "s|^VAULT_ENC_KEY=.*|VAULT_ENC_KEY=$VAULT_ENC_KEY|g" .env
+LOGFLARE_PUBLIC_ACCESS_TOKEN=$(openssl rand -hex 32)
+sed -i "s|^LOGFLARE_PUBLIC_ACCESS_TOKEN=.*|LOGFLARE_PUBLIC_ACCESS_TOKEN=$LOGFLARE_PUBLIC_ACCESS_TOKEN|g" .env
+LOGFLARE_PRIVATE_ACCESS_TOKEN=$(openssl rand -hex 32)
+sed -i "s|^LOGFLARE_PRIVATE_ACCESS_TOKEN=.*|LOGFLARE_PRIVATE_ACCESS_TOKEN=$LOGFLARE_PRIVATE_ACCESS_TOKEN|g" .env
+DASHBOARD_PASSWORD=$(openssl rand -base64 32)
+sed -i "s|^DASHBOARD_PASSWORD=.*|DASHBOARD_PASSWORD=$DASHBOARD_PASSWORD|g" .env
+SMTP_PASS=$(openssl rand -base64 32)
+sed -i "s|^SMTP_PASS=.*|SMTP_PASS=$SMTP_PASS|g" .env
 
 # Se não tiver domínio, expor a porta do Supabase publicamente
 if [[ ! "$HAS_DOMAIN" =~ ^[Ss]$ ]]; then
