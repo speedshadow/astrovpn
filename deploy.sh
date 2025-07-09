@@ -115,15 +115,51 @@ SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
 JWT_SECRET="$JWT_SECRET"
 DISABLE_SIGNUP="$DISABLE_SIGNUP"
 
-# Variáveis adicionais necessárias
-API_EXTERNAL_URL="${SITE_URL}/auth"
+# Variáveis do Kong
+KONG_DNS_ORDER="LAST,A,CNAME"
+KONG_DATABASE="off"
+KONG_DECLARATIVE_CONFIG="/var/lib/kong/kong.yml"
+
+# Variáveis do GoTrue (Auth)
 GOTRUE_SITE_URL="$SITE_URL"
+GOTRUE_URI="http://auth:9999"
+GOTRUE_JWT_SECRET="$JWT_SECRET"
+GOTRUE_JWT_EXP=3600
+GOTRUE_JWT_DEFAULT_GROUP_NAME="authenticated"
+GOTRUE_DB_DRIVER="postgres"
+GOTRUE_DB_HOST="db"
+GOTRUE_DB_PORT="5432"
+GOTRUE_DB_NAME="postgres"
+GOTRUE_DB_USER="supabase_auth_admin"
 GOTRUE_DB_PASSWORD="$POSTGRES_PASSWORD"
+GOTRUE_API_HOST="0.0.0.0"
+GOTRUE_API_PORT="9999"
+
+# Variáveis do PostgREST
 PGRST_DB_URI="postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres"
+PGRST_DB_SCHEMA="public,storage"
+PGRST_DB_ANON_ROLE="anon"
 PGRST_JWT_SECRET="$JWT_SECRET"
-DB_PASSWORD="$POSTGRES_PASSWORD"
-DATABASE_URL="postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres"
+PGRST_DB_USE_LEGACY_GUCS="false"
+
+# Variáveis do Storage
+STORAGE_BACKEND="file"
+FILE_STORAGE_BACKEND_PATH="/var/lib/storage"
+STORAGE_JWT_SECRET="$JWT_SECRET"
+FILE_SIZE_LIMIT=52428800
+DATA_API_PORT=5000
+
+# Variáveis do Meta
+PG_META_PORT=8080
+PG_META_DB_HOST="db"
 PG_META_DB_PASSWORD="$POSTGRES_PASSWORD"
+
+# Variáveis do Studio
+DASHBOARD_USERNAME="supabase"
+DASHBOARD_PASSWORD="$POSTGRES_PASSWORD"
+STUDIO_PG_META_URL="http://meta:8080"
+SUPABASE_PUBLIC_URL="$SITE_URL"
+SUPABASE_URL="$SITE_URL"
 EOL
     
     # Usar o arquivo docker-compose.yml oficial do Supabase
@@ -141,35 +177,92 @@ EOL
         cat > "$SCRIPT_DIR/volumes/api/kong.yml" << EOL
 _format_version: "2.1"
 
+consumers:
+  - username: anon
+    keyauth_credentials:
+      - key: ${ANON_KEY}
+  - username: service_role
+    keyauth_credentials:
+      - key: ${SERVICE_ROLE_KEY}
+
 services:
   - name: auth-v1
     url: http://auth:9999
     routes:
-      - path_regex: /auth/v1/.*
+      - name: auth-v1-all
         strip_path: true
+        paths:
+          - /auth/v1
     plugins:
       - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+
   - name: rest-v1
     url: http://rest:3000
     routes:
-      - path_regex: /rest/v1/.*
+      - name: rest-v1-all
         strip_path: true
+        paths:
+          - /rest/v1
     plugins:
       - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+
   - name: realtime-v1
-    url: http://realtime:4000/socket/
+    url: http://realtime:4000/socket
     routes:
-      - path_regex: /realtime/v1/.*
+      - name: realtime-v1-all
         strip_path: true
+        paths:
+          - /realtime/v1
     plugins:
       - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+
   - name: storage-v1
     url: http://storage:5000
     routes:
-      - path_regex: /storage/v1/.*
+      - name: storage-v1-all
         strip_path: true
+        paths:
+          - /storage/v1
     plugins:
       - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+
+  - name: meta
+    url: http://meta:8080
+    routes:
+      - name: meta-all
+        strip_path: true
+        paths:
+          - /pg
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
+
+  - name: postgrest
+    url: http://rest:3000
+    routes:
+      - name: postgrest-all
+        strip_path: true
+        paths:
+          - /
+    plugins:
+      - name: cors
+      - name: key-auth
+        config:
+          hide_credentials: false
 EOL
         
         echo -e "${C_GREEN}Arquivo docker-compose.yml configurado com sucesso!${C_NC}"
