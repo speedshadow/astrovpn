@@ -78,10 +78,40 @@ if ! docker compose up -d; then
   docker logs --tail=50 supabase-analytics || echo -e "${C_YELLOW}Não foi possível obter logs do supabase-analytics.${C_NC}"
 fi
 
+# Espera ativa pelos containers críticos ficarem running/healthy
+MAX_WAIT=90
+WAITED=0
+SLEEP_STEP=5
+echo -e "${C_BLUE}A aguardar até 90s pelos containers críticos ficarem prontos...${C_NC}"
+CRITICAL_CONTAINERS=(supabase-db supabase-rest supabase-auth supabase-storage supabase-kong)
+while true; do
+  ALL_READY=1
+  for cname in "${CRITICAL_CONTAINERS[@]}"; do
+    STATUS=$(docker inspect -f '{{.State.Status}}' $cname 2>/dev/null || echo "unknown")
+    HEALTH=$(docker inspect -f '{{.State.Health.Status}}' $cname 2>/dev/null || echo "unknown")
+    if [[ "$STATUS" != "running" ]]; then
+      ALL_READY=0
+      break
+    fi
+    if [[ "$HEALTH" == "unhealthy" ]]; then
+      ALL_READY=0
+      break
+    fi
+  done
+  if [[ $ALL_READY -eq 1 ]]; then
+    break
+  fi
+  if [[ $WAITED -ge $MAX_WAIT ]]; then
+    echo -e "${C_YELLOW}AVISO: Alguns containers podem não estar prontos após ${MAX_WAIT}s. O deploy vai continuar, mas verifica os logs se algo falhar.${C_NC}"
+    break
+  fi
+  sleep $SLEEP_STEP
+  WAITED=$((WAITED+SLEEP_STEP))
+done
+
 # --- 5. Diagnóstico automático dos containers ---
 echo -e "\n${C_BLUE}A verificar o estado dos containers Supabase...${C_NC}"
 ALL_OK=1
-CRITICAL_CONTAINERS=(supabase-db supabase-rest supabase-auth supabase-storage supabase-kong)
 
 for cname in "${CRITICAL_CONTAINERS[@]}"; do
   STATUS=$(docker inspect -f '{{.State.Status}}' $cname 2>/dev/null || echo "unknown")
@@ -133,9 +163,16 @@ fi
 echo -e "\n${C_BLUE}A configurar a aplicação Astro...${C_NC}"
 
 # Instalar NVM e Node.js
-export NVM_DIR="$HOME/.nvm" && (git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR" && cd "$NVM_DIR" && git checkout `git describe --abbrev=0 --tags --match "v[0-9]*" $(git rev-list --tags --max-count=1)`)
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
-source $HOME/.bashrc || true
+export NVM_DIR="/root/.nvm"
+if [ ! -d "$NVM_DIR/.git" ]; then
+  git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR" || { echo -e "${C_RED}ERRO: Falha ao clonar NVM${C_NC}"; exit 2; }
+  cd "$NVM_DIR"
+else
+  cd "$NVM_DIR"
+  git fetch --tags || { echo -e "${C_RED}ERRO: Falha ao atualizar NVM${C_NC}"; exit 2; }
+fi
+git checkout "$(git describe --abbrev=0 --tags --match "v[0-9]*" $(git rev-list --tags --max-count=1))" || { echo -e "${C_RED}ERRO: Falha ao fazer checkout do último tag do NVM${C_NC}"; exit 2; }
+true
 nvm install 20
 nvm use 20
 
