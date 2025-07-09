@@ -132,43 +132,48 @@ fix_docker_compose_files() {
         if [ "$DISABLE_VECTOR" = true ]; then
             echo -e "${C_YELLOW}Desativando o serviço Vector em $compose_file...${C_NC}"
             
-            # Abordagem mais segura: criar um arquivo temporário sem o serviço vector
-            TEMP_FILE=$(mktemp)
-            
-            # Extrair o serviço vector para identificá-lo corretamente
-            VECTOR_SERVICE_START=$(grep -n "^\s*vector:" "$compose_file" | cut -d: -f1)
-            
-            if [ -n "$VECTOR_SERVICE_START" ]; then
-                # Encontrar o próximo serviço após o vector
-                NEXT_SERVICE=$(tail -n +$VECTOR_SERVICE_START "$compose_file" | grep -n "^[a-zA-Z]\+:" | grep -v "^1:" | head -1 | cut -d: -f1)
+            # Abordagem mais simples e robusta: usar sed para comentar o serviço vector
+            if grep -q "vector:" "$compose_file"; then
+                # Comentar a definição do serviço vector
+                sed -i '/vector:/s/^/#/' "$compose_file"
                 
-                if [ -n "$NEXT_SERVICE" ]; then
-                    # Calcular a linha de fim do serviço vector
-                    VECTOR_SERVICE_END=$((VECTOR_SERVICE_START + NEXT_SERVICE - 2))
-                    
-                    # Criar um novo arquivo sem o serviço vector
-                    head -n $((VECTOR_SERVICE_START - 1)) "$compose_file" > "$TEMP_FILE"
-                    tail -n +$((VECTOR_SERVICE_END + 1)) "$compose_file" >> "$TEMP_FILE"
-                    
-                    # Substituir o arquivo original
-                    mv "$TEMP_FILE" "$compose_file"
-                    
-                    # Remover dependências do vector em outros serviços
-                    sed -i 's|\[vector,|\[|g' "$compose_file"
-                    sed -i 's|, vector\]|\]|g' "$compose_file"
-                    sed -i 's|\[vector\]|\[\]|g' "$compose_file"
-                    sed -i 's|vector,||g' "$compose_file"
-                    sed -i 's|, vector||g' "$compose_file"
-                    
-                    echo -e "${C_GREEN}Serviço Vector removido com sucesso!${C_NC}"
-                else
-                    echo -e "${C_YELLOW}Não foi possível determinar o fim do serviço Vector.${C_NC}"
-                    rm "$TEMP_FILE"
-                fi
+                # Comentar todas as linhas indentadas que seguem a definição do serviço
+                sed -i '/^[[:space:]]\+image: supabase\/vector/s/^/#/' "$compose_file"
+                sed -i '/^[[:space:]]\+restart:/s/^/#/' "$compose_file"
+                sed -i '/^[[:space:]]\+volumes:/s/^/#/' "$compose_file"
+                sed -i '/^[[:space:]]\+- \.\//s/^/#/' "$compose_file"
+                sed -i '/^[[:space:]]\+- \/var\/run/s/^/#/' "$compose_file"
+                sed -i '/^[[:space:]]\+healthcheck:/s/^/#/' "$compose_file"
+                sed -i '/^[[:space:]]\+test:/s/^/#/' "$compose_file"
+                sed -i '/^[[:space:]]\+- CMD/s/^/#/' "$compose_file"
+                sed -i '/^[[:space:]]\+interval:/s/^/#/' "$compose_file"
+                sed -i '/^[[:space:]]\+timeout:/s/^/#/' "$compose_file"
+                sed -i '/^[[:space:]]\+retries:/s/^/#/' "$compose_file"
+                sed -i '/^[[:space:]]\+start_period:/s/^/#/' "$compose_file"
+                sed -i '/^[[:space:]]\+environment:/s/^/#/' "$compose_file"
+                sed -i '/^[[:space:]]\+- VECTOR_/s/^/#/' "$compose_file"
+                sed -i '/^[[:space:]]\+command:/s/^/#/' "$compose_file"
+                sed -i '/^[[:space:]]\+- --config/s/^/#/' "$compose_file"
+                
+                # Remover dependências do vector em outros serviços
+                sed -i 's|\[vector,|\[|g' "$compose_file"
+                sed -i 's|, vector\]|\]|g' "$compose_file"
+                sed -i 's|\[vector\]|\[\]|g' "$compose_file"
+                sed -i 's|vector,||g' "$compose_file"
+                sed -i 's|, vector||g' "$compose_file"
+                
+                echo -e "${C_GREEN}Serviço Vector comentado com sucesso!${C_NC}"
             else
                 echo -e "${C_YELLOW}Serviço Vector não encontrado em $compose_file.${C_NC}"
-                rm "$TEMP_FILE"
             fi
+            
+            # Solução radical: remover completamente o container vector do docker-compose up
+            echo -e "${C_YELLOW}Adicionando comando para ignorar o Vector durante a inicialização...${C_NC}"
+            DOCKER_COMPOSE_CMD="docker compose up -d"
+            DOCKER_COMPOSE_IGNORE_VECTOR="docker compose up -d --scale vector=0"
+            
+            # Substituir o comando docker compose no script
+            sed -i "s|$DOCKER_COMPOSE_CMD|$DOCKER_COMPOSE_IGNORE_VECTOR|g" "$SCRIPT_DIR/deploy.sh"
         fi
         
         echo -e "${C_GREEN}Arquivo $compose_file corrigido!${C_NC}"
