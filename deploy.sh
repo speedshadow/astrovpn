@@ -80,12 +80,35 @@ git checkout master
 echo -e "${C_BLUE}A copiar os ficheiros de configuração oficiais...${C_NC}"
 cp -rf docker/* "$SCRIPT_DIR/"
 
-# Voltar ao diretório do script
+# Voltar ao diretório original
 cd "$SCRIPT_DIR"
 
 # Limpar diretório temporário
 echo -e "${C_BLUE}Removendo diretório temporário...${C_NC}"
 rm -rf "$TMP_DIR"
+
+# Corrigir problemas nos arquivos docker-compose.yml
+echo -e "${C_BLUE}Corrigindo configurações do Docker Compose...${C_NC}"
+
+# Função para corrigir o problema do Docker socket em arquivos docker-compose
+fix_docker_compose_files() {
+    for compose_file in $(find "$SCRIPT_DIR" -name "docker-compose*.yml"); do
+        echo -e "${C_BLUE}Corrigindo arquivo: $compose_file${C_NC}"
+        
+        # Corrigir o problema do Docker socket (:/var/run/docker.sock:ro,z)
+        sed -i 's|:/var/run/docker.sock:ro,z|/var/run/docker.sock:/var/run/docker.sock:ro,z|g' "$compose_file"
+        
+        # Verificar se o arquivo foi modificado corretamente
+        if grep -q "/var/run/docker.sock:/var/run/docker.sock:ro,z" "$compose_file"; then
+            echo -e "${C_GREEN}Arquivo $compose_file corrigido com sucesso!${C_NC}"
+        else
+            echo -e "${C_YELLOW}Aviso: Não foi encontrado o padrão para corrigir em $compose_file${C_NC}"
+        fi
+    done
+}
+
+# Executar a função de correção
+fix_docker_compose_files
 
 # Gerar o ficheiro .env
 echo -e "\n${C_BLUE}A gerar o ficheiro .env com novos segredos...${C_NC}"
@@ -105,6 +128,45 @@ API_EXTERNAL_URL="${SITE_URL}/rest/v1/"
 GRAPHQL_EXTERNAL_URL="${SITE_URL}/graphql/v1/"
 REALTIME_EXTERNAL_URL="${SITE_URL}/realtime/v1/"
 STORAGE_EXTERNAL_URL="${SITE_URL}/storage/v1/"
+
+# Variáveis adicionais necessárias
+POSTGRES_HOST=db
+POSTGRES_DB=postgres
+DOCKER_SOCKET_LOCATION=/var/run/docker.sock
+SUPABASE_PUBLIC_URL="${SITE_URL}"
+JWT_EXPIRY=3600
+ENABLE_EMAIL_SIGNUP=true
+ENABLE_EMAIL_AUTOCONFIRM=true
+ENABLE_PHONE_SIGNUP=true
+ENABLE_PHONE_AUTOCONFIRM=true
+ENABLE_ANONYMOUS_USERS=true
+DISABLE_SIGNUP=false
+STUDIO_DEFAULT_ORGANIZATION="Default Organization"
+STUDIO_DEFAULT_PROJECT="Default Project"
+SECRET_KEY_BASE=$(openssl rand -hex 32)
+VAULT_ENC_KEY=$(openssl rand -hex 32)
+POOLER_DEFAULT_POOL_SIZE=20
+POOLER_MAX_CLIENT_CONN=20
+POOLER_DB_POOL_SIZE=20
+POOLER_TENANT_ID=stub
+POOLER_PROXY_PORT_TRANSACTION=6432
+LOGFLARE_PUBLIC_ACCESS_TOKEN=stub
+LOGFLARE_PRIVATE_ACCESS_TOKEN=stub
+ADDITIONAL_REDIRECT_URLS=""
+FUNCTIONS_VERIFY_JWT=false
+IMGPROXY_ENABLE_WEBP_DETECTION=true
+
+# SMTP configurações (opcionais, mas evitam warnings)
+SMTP_HOST=
+SMTP_PORT=
+SMTP_USER=
+SMTP_PASS=
+SMTP_SENDER_NAME="Supabase"
+SMTP_ADMIN_EMAIL="admin@example.com"
+MAILER_URLPATHS_CONFIRMATION="/auth/v1/verify"
+MAILER_URLPATHS_INVITE="/auth/v1/verify"
+MAILER_URLPATHS_RECOVERY="/auth/v1/verify"
+MAILER_URLPATHS_EMAIL_CHANGE="/auth/v1/verify"
 
 # Criar o arquivo .env diretamente com caminho absoluto
 ENV_FILE="$SCRIPT_DIR/.env"
@@ -193,6 +255,45 @@ echo "############" >> "$ENV_FILE"
 echo "" >> "$ENV_FILE"
 echo "# URL do site (usada para redirecionamentos e emails)" >> "$ENV_FILE"
 echo "SITE_URL=$SITE_URL" >> "$ENV_FILE"
+
+# Variáveis adicionais para evitar warnings
+echo "POSTGRES_HOST=$POSTGRES_HOST" >> "$ENV_FILE"
+echo "POSTGRES_DB=$POSTGRES_DB" >> "$ENV_FILE"
+echo "DOCKER_SOCKET_LOCATION=$DOCKER_SOCKET_LOCATION" >> "$ENV_FILE"
+echo "SUPABASE_PUBLIC_URL=$SUPABASE_PUBLIC_URL" >> "$ENV_FILE"
+echo "JWT_EXPIRY=$JWT_EXPIRY" >> "$ENV_FILE"
+echo "ENABLE_EMAIL_SIGNUP=$ENABLE_EMAIL_SIGNUP" >> "$ENV_FILE"
+echo "ENABLE_EMAIL_AUTOCONFIRM=$ENABLE_EMAIL_AUTOCONFIRM" >> "$ENV_FILE"
+echo "ENABLE_PHONE_SIGNUP=$ENABLE_PHONE_SIGNUP" >> "$ENV_FILE"
+echo "ENABLE_PHONE_AUTOCONFIRM=$ENABLE_PHONE_AUTOCONFIRM" >> "$ENV_FILE"
+echo "ENABLE_ANONYMOUS_USERS=$ENABLE_ANONYMOUS_USERS" >> "$ENV_FILE"
+echo "DISABLE_SIGNUP=$DISABLE_SIGNUP" >> "$ENV_FILE"
+echo "STUDIO_DEFAULT_ORGANIZATION=$STUDIO_DEFAULT_ORGANIZATION" >> "$ENV_FILE"
+echo "STUDIO_DEFAULT_PROJECT=$STUDIO_DEFAULT_PROJECT" >> "$ENV_FILE"
+echo "SECRET_KEY_BASE=$SECRET_KEY_BASE" >> "$ENV_FILE"
+echo "VAULT_ENC_KEY=$VAULT_ENC_KEY" >> "$ENV_FILE"
+echo "POOLER_DEFAULT_POOL_SIZE=$POOLER_DEFAULT_POOL_SIZE" >> "$ENV_FILE"
+echo "POOLER_MAX_CLIENT_CONN=$POOLER_MAX_CLIENT_CONN" >> "$ENV_FILE"
+echo "POOLER_DB_POOL_SIZE=$POOLER_DB_POOL_SIZE" >> "$ENV_FILE"
+echo "POOLER_TENANT_ID=$POOLER_TENANT_ID" >> "$ENV_FILE"
+echo "POOLER_PROXY_PORT_TRANSACTION=$POOLER_PROXY_PORT_TRANSACTION" >> "$ENV_FILE"
+echo "LOGFLARE_PUBLIC_ACCESS_TOKEN=$LOGFLARE_PUBLIC_ACCESS_TOKEN" >> "$ENV_FILE"
+echo "LOGFLARE_PRIVATE_ACCESS_TOKEN=$LOGFLARE_PRIVATE_ACCESS_TOKEN" >> "$ENV_FILE"
+echo "ADDITIONAL_REDIRECT_URLS=$ADDITIONAL_REDIRECT_URLS" >> "$ENV_FILE"
+echo "FUNCTIONS_VERIFY_JWT=$FUNCTIONS_VERIFY_JWT" >> "$ENV_FILE"
+echo "IMGPROXY_ENABLE_WEBP_DETECTION=$IMGPROXY_ENABLE_WEBP_DETECTION" >> "$ENV_FILE"
+
+# SMTP configurações
+echo "SMTP_HOST=$SMTP_HOST" >> "$ENV_FILE"
+echo "SMTP_PORT=$SMTP_PORT" >> "$ENV_FILE"
+echo "SMTP_USER=$SMTP_USER" >> "$ENV_FILE"
+echo "SMTP_PASS=$SMTP_PASS" >> "$ENV_FILE"
+echo "SMTP_SENDER_NAME=$SMTP_SENDER_NAME" >> "$ENV_FILE"
+echo "SMTP_ADMIN_EMAIL=$SMTP_ADMIN_EMAIL" >> "$ENV_FILE"
+echo "MAILER_URLPATHS_CONFIRMATION=$MAILER_URLPATHS_CONFIRMATION" >> "$ENV_FILE"
+echo "MAILER_URLPATHS_INVITE=$MAILER_URLPATHS_INVITE" >> "$ENV_FILE"
+echo "MAILER_URLPATHS_RECOVERY=$MAILER_URLPATHS_RECOVERY" >> "$ENV_FILE"
+echo "MAILER_URLPATHS_EMAIL_CHANGE=$MAILER_URLPATHS_EMAIL_CHANGE" >> "$ENV_FILE"
 
 echo -e "${C_GREEN}Arquivo .env gerado com sucesso em $ENV_FILE!${C_NC}"
 echo -e "${C_GREEN}URL do site: $SITE_URL${C_NC}"
