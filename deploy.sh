@@ -250,25 +250,29 @@ EOL
     echo -e "${C_GREEN}Ambiente configurado com sucesso!${C_NC}"
 }
 
-# Função para configurar o Vector
-configure_vector() {
-    echo -e "\n${C_BLUE}Configurando Vector...${C_NC}"
+# Função para desativar o Vector
+disable_vector() {
+    echo -e "\n${C_BLUE}Desativando serviço Vector...${C_NC}"
     
-    # Criar diretório para logs do Vector
-    mkdir -p "${PROJECT_DIR}/volumes/vector/data"
-    chmod -R 777 "${PROJECT_DIR}/volumes/vector"
+    # Procurar o arquivo docker-compose.yml
+    local compose_file="${PROJECT_DIR}/docker-compose.yml"
+    if [ ! -f "$compose_file" ]; then
+        compose_file="${PROJECT_DIR}/supabase/docker/docker-compose.yml"
+    fi
 
-    # Configurar Vector
-    cat > "${PROJECT_DIR}/volumes/vector/vector.toml" << 'EOL'
-[sources.docker_logs]
-type = "docker_logs"
-include_containers = ["supabase-*"]
+    if [ ! -f "$compose_file" ]; then
+        echo -e "${C_RED}Arquivo docker-compose.yml não encontrado!${C_NC}"
+        exit 1
+    fi
 
-[sinks.console]
-type = "console"
-inputs = ["docker_logs"]
-encoding.codec = "json"
-EOL
+    # Fazer backup do arquivo
+    cp "$compose_file" "${compose_file}.bak"
+
+    # Remover o serviço vector e suas dependências
+    sed -i '/vector:/,/^[^ ]/d' "$compose_file"
+    sed -i 's/- vector//g' "$compose_file"
+    
+    echo -e "${C_GREEN}Vector desativado com sucesso!${C_NC}"
 }
 
 # Função para iniciar os serviços
@@ -277,8 +281,8 @@ start_services() {
     
     cd "$PROJECT_DIR"
 
-    # Configurar Vector primeiro
-    configure_vector
+    # Desativar Vector primeiro
+    disable_vector
 
     echo -e "\n${C_BLUE}Baixando imagens mais recentes...${C_NC}"
     docker compose pull
