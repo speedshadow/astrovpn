@@ -28,14 +28,8 @@ echo -e "\n${C_BLUE}A instalar dependências (Docker, Git...)${C_NC}"
 apt-get update
 apt-get install -y docker.io docker-compose-v2 git curl
 
-# --- 2. Recolher Informação do Utilizador ---
+# --- 2. Perguntar apenas sobre domínio ---
 echo -e "\n${C_YELLOW}Preciso de alguma informação sua:${C_NC}"
-read -p "Qual é o URL do seu repositório Git? " GIT_REPO_URL
-if [ -z "$GIT_REPO_URL" ]; then
-    echo -e "${C_RED}Erro: O URL do repositório é obrigatório.${C_NC}"
-    exit 1
-fi
-
 read -p "Você tem um nome de domínio pronto a usar? (s/N) " HAS_DOMAIN
 
 # --- 3. Gerar Segredos de Produção ---
@@ -80,10 +74,8 @@ nvm use 20
 # Instalar PM2
 npm install -g pm2
 
-# Clonar o repositório
-APP_DIR="/var/www/astrovpn"
-rm -rf $APP_DIR
-git clone $GIT_REPO_URL $APP_DIR
+# Usar o código já presente na pasta atual
+APP_DIR="$(pwd)"
 cd $APP_DIR
 
 # --- 6. Configuração Específica (Domínio vs IP) ---
