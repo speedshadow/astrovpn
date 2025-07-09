@@ -234,22 +234,7 @@ else
   echo -e "\n${C_GREEN}Todos os serviços críticos do Supabase estão a correr!${C_NC}"
 fi
 
-# --- 5. Configurar Aplicação Astro ---
-echo -e "\n${C_BLUE}A configurar a aplicação Astro...${C_NC}"
-
-# Instalar NVM e Node.js
-export NVM_DIR="/root/.nvm"
-if [ ! -d "$NVM_DIR/.git" ]; then
-  git clone https://github.com/nvm-sh/nvm.git "$NVM_DIR" || { echo -e "${C_RED}ERRO: Falha ao clonar NVM${C_NC}"; exit 2; }
-  cd "$NVM_DIR"
-else
-  cd "$NVM_DIR"
-  git fetch --tags || { echo -e "${C_RED}ERRO: Falha ao atualizar NVM${C_NC}"; exit 2; }
-fi
-git checkout "$(git describe --abbrev=0 --tags --match "v[0-9]*" $(git rev-list --tags --max-count=1))" || { echo -e "${C_RED}ERRO: Falha ao fazer checkout do último tag do NVM${C_NC}"; exit 2; }
-true
-nvm install 20
-nvm use 20
+echo -e "\n${C_GREEN}Deploy do Supabase concluído!${C_NC}"
 
 # Instalar PM2
 npm install -g pm2
