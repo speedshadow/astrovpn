@@ -250,11 +250,35 @@ EOL
     echo -e "${C_GREEN}Ambiente configurado com sucesso!${C_NC}"
 }
 
+# Função para configurar o Vector
+configure_vector() {
+    echo -e "\n${C_BLUE}Configurando Vector...${C_NC}"
+    
+    # Criar diretório para logs do Vector
+    mkdir -p "${PROJECT_DIR}/volumes/vector/data"
+    chmod -R 777 "${PROJECT_DIR}/volumes/vector"
+
+    # Configurar Vector
+    cat > "${PROJECT_DIR}/volumes/vector/vector.toml" << 'EOL'
+[sources.docker_logs]
+type = "docker_logs"
+include_containers = ["supabase-*"]
+
+[sinks.console]
+type = "console"
+inputs = ["docker_logs"]
+encoding.codec = "json"
+EOL
+}
+
 # Função para iniciar os serviços
 start_services() {
     echo -e "\n${C_BLUE}Iniciando serviços do Supabase...${C_NC}"
     
     cd "$PROJECT_DIR"
+
+    # Configurar Vector primeiro
+    configure_vector
 
     echo -e "\n${C_BLUE}Baixando imagens mais recentes...${C_NC}"
     docker compose pull
@@ -262,13 +286,16 @@ start_services() {
     echo -e "\n${C_BLUE}Iniciando containers...${C_NC}"
     docker compose up -d
 
+    # Aguardar e verificar serviços
     echo -e "\n${C_BLUE}Aguardando serviços iniciarem...${C_NC}"
-    sleep 10
+    sleep 30
 
-    # Verificar status dos containers
+    # Verificar logs se houver erro
     if docker compose ps | grep -q "unhealthy\|exited"; then
         echo -e "${C_RED}Alguns serviços não iniciaram corretamente:${C_NC}"
         docker compose ps
+        echo -e "\n${C_YELLOW}Logs dos serviços com problema:${C_NC}"
+        docker compose logs --tail 50 vector
         exit 1
     fi
 
