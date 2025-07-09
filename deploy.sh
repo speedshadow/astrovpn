@@ -131,13 +131,44 @@ fix_docker_compose_files() {
         # Desativar serviços problemáticos se solicitado
         if [ "$DISABLE_VECTOR" = true ]; then
             echo -e "${C_YELLOW}Desativando o serviço Vector em $compose_file...${C_NC}"
-            # Comentar todo o serviço vector
-            sed -i '/^\s*vector:/,/^\s*[a-z]\+:/s/^/#/' "$compose_file"
-            # Remover dependências do vector em outros serviços
-            sed -i 's|\(depends_on:\s*\[.*\)vector\(.*\]\)|\1\2|g' "$compose_file"
-            sed -i 's|\[\s*,|\[|g' "$compose_file"  # Corrigir sintaxe após remoção
-            sed -i 's|,\s*\]|\]|g' "$compose_file"   # Corrigir sintaxe após remoção
-            sed -i 's|\[\s*\]|\[\]|g' "$compose_file"  # Corrigir arrays vazios
+            
+            # Abordagem mais segura: criar um arquivo temporário sem o serviço vector
+            TEMP_FILE=$(mktemp)
+            
+            # Extrair o serviço vector para identificá-lo corretamente
+            VECTOR_SERVICE_START=$(grep -n "^\s*vector:" "$compose_file" | cut -d: -f1)
+            
+            if [ -n "$VECTOR_SERVICE_START" ]; then
+                # Encontrar o próximo serviço após o vector
+                NEXT_SERVICE=$(tail -n +$VECTOR_SERVICE_START "$compose_file" | grep -n "^[a-zA-Z]\+:" | grep -v "^1:" | head -1 | cut -d: -f1)
+                
+                if [ -n "$NEXT_SERVICE" ]; then
+                    # Calcular a linha de fim do serviço vector
+                    VECTOR_SERVICE_END=$((VECTOR_SERVICE_START + NEXT_SERVICE - 2))
+                    
+                    # Criar um novo arquivo sem o serviço vector
+                    head -n $((VECTOR_SERVICE_START - 1)) "$compose_file" > "$TEMP_FILE"
+                    tail -n +$((VECTOR_SERVICE_END + 1)) "$compose_file" >> "$TEMP_FILE"
+                    
+                    # Substituir o arquivo original
+                    mv "$TEMP_FILE" "$compose_file"
+                    
+                    # Remover dependências do vector em outros serviços
+                    sed -i 's|\[vector,|\[|g' "$compose_file"
+                    sed -i 's|, vector\]|\]|g' "$compose_file"
+                    sed -i 's|\[vector\]|\[\]|g' "$compose_file"
+                    sed -i 's|vector,||g' "$compose_file"
+                    sed -i 's|, vector||g' "$compose_file"
+                    
+                    echo -e "${C_GREEN}Serviço Vector removido com sucesso!${C_NC}"
+                else
+                    echo -e "${C_YELLOW}Não foi possível determinar o fim do serviço Vector.${C_NC}"
+                    rm "$TEMP_FILE"
+                fi
+            else
+                echo -e "${C_YELLOW}Serviço Vector não encontrado em $compose_file.${C_NC}"
+                rm "$TEMP_FILE"
+            fi
         fi
         
         echo -e "${C_GREEN}Arquivo $compose_file corrigido!${C_NC}"
