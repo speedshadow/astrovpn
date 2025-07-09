@@ -59,10 +59,10 @@ cd $SUPABASE_DIR/docker || { echo -e "${C_RED}ERRO: Falha ao aceder à pasta doc
 cp .env.example .env || { echo -e "${C_RED}ERRO: Falha ao copiar .env.example${C_NC}"; exit 2; }
 
 # Gerar segredos automaticamente
-sed -i "s/POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$DB_PASSWORD/g" .env
-sed -i "s/JWT_SECRET=.*/JWT_SECRET=$JWT_SECRET/g" .env
-sed -i "s/ANON_KEY=.*/ANON_KEY=$ANON_KEY/g" .env
-sed -i "s/SERVICE_ROLE_KEY=.*/SERVICE_ROLE_KEY=$SERVICE_KEY/g" .env
+sed -i "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$DB_PASSWORD|g" .env
+sed -i "s|JWT_SECRET=.*|JWT_SECRET=$JWT_SECRET|g" .env
+sed -i "s|ANON_KEY=.*|ANON_KEY=$ANON_KEY|g" .env
+sed -i "s|SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$SERVICE_KEY|g" .env
 
 # Se não tiver domínio, expor a porta do Supabase publicamente
 if [[ ! "$HAS_DOMAIN" =~ ^[Ss]$ ]]; then
