@@ -263,7 +263,9 @@ EOL
     # Expor a porta do Supabase Kong
     sed -i '/kong:/,/^\s*$/s/#- 8000:8000/- 8000:8000/' /opt/supabase-prod/docker/docker-compose.yml
     echo -e "${C_BLUE}A reiniciar o Supabase para expor a porta 8000...${C_NC}"
-    cd /opt/supabase-prod && docker compose -f docker/docker-compose.yml up -d --force-recreate > /dev/null
+    cp -R supabase/* /opt/supabase-prod/docker/
+    cd /opt/supabase-prod/docker/
+    docker compose up -d --force-recreate > /dev/null
     cd /opt/app
 
     echo -e "${C_BLUE}A instalar dependências e a iniciar o site em modo de produção...${C_NC}"
