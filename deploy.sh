@@ -49,6 +49,10 @@ fi
 echo -e "\n${C_BLUE}A parar e a remover containers e volumes antigos...${C_NC}"
 docker compose down -v --remove-orphans || true
 
+# O Vector é necessário para logs e métricas
+DISABLE_VECTOR=false
+echo -e "${C_BLUE}O serviço Vector será mantido para logs e métricas.${C_NC}"
+
 # Perguntar sobre o domínio
 echo -e "\n${C_BLUE}Como pretende aceder ao Supabase?${C_NC}"
 read -p "Vai usar um domínio (ex: supabase.meudominio.com)? (s/N) " HAS_DOMAIN
