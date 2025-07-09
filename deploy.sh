@@ -15,9 +15,6 @@ C_NC="\033[0m" # No Color
 set -e
 trap 'echo -e "${C_RED}ERRO na linha $LINENO: $BASH_COMMAND${C_NC}"' ERR
 
-# Mudar para o diretório onde o script está localizado
-cd "$(dirname "$0")"
-
 # Verificar se o Docker está instalado
 if ! command -v docker &> /dev/null; then
     echo -e "${C_RED}Docker não está instalado. Por favor, instale o Docker primeiro.${C_NC}"
@@ -60,40 +57,22 @@ echo -e "\n${C_BLUE}A obter a configuração oficial do Supabase...${C_NC}"
 
 # Criar diretório temporário
 TMP_DIR=$(mktemp -d)
-cd "$TMP_DIR"
 
 # Obter apenas os ficheiros necessários do repositório Supabase
-git clone --filter=blob:none --no-checkout https://github.com/supabase/supabase
-cd supabase
+git clone --filter=blob:none --no-checkout https://github.com/supabase/supabase "$TMP_DIR/supabase"
+cd "$TMP_DIR/supabase"
 git sparse-checkout set --cone docker
 git checkout master
-cd ..
 
-# Copiar os ficheiros para o diretório do projeto
+# Copiar os ficheiros para o diretório atual
 echo -e "${C_BLUE}A copiar os ficheiros de configuração oficiais...${C_NC}"
-cp -rf supabase/docker/* "$(dirname "$0")/"
-
-# Voltar ao diretório do projeto
-cd "$(dirname "$0")"
+cp -rf docker/* .
 
 # Limpar diretório temporário
 rm -rf "$TMP_DIR"
 
 # Gerar o ficheiro .env
 echo -e "\n${C_BLUE}A gerar o ficheiro .env com novos segredos...${C_NC}"
-
-# Função para percent-encode (URL encode) strings
-urlencode() {
-  local LANG=C
-  local length="${#1}"
-  for (( i = 0; i < length; i++ )); do
-    local c="${1:i:1}"
-    case $c in
-      [a-zA-Z0-9.~_-]) printf "$c" ;;
-      *) printf '%%%02X' "'${c}" ;;
-    esac
-  done
-}
 
 # Gerar senhas e chaves seguras
 POSTGRES_PASSWORD=$(openssl rand -base64 32)
@@ -111,94 +90,92 @@ GRAPHQL_EXTERNAL_URL="${SITE_URL}/graphql/v1/"
 REALTIME_EXTERNAL_URL="${SITE_URL}/realtime/v1/"
 STORAGE_EXTERNAL_URL="${SITE_URL}/storage/v1/"
 
-# Gerar arquivo .env
-cat > .env << EOF
-############
-# Secrets - Gere suas próprias chaves e segredos
-############
-
-POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-JWT_SECRET=${JWT_SECRET}
-ANON_KEY=${ANON_KEY}
-SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}
-
-############
-# Database - Você pode alterar estas configurações
-############
-
-# Porta para conexão PostgreSQL
-POSTGRES_PORT=${POSTGRES_PORT}
-
-############
-# API Proxy - Configuração do Kong
-############
-
-KONG_HTTP_PORT=${KONG_HTTP_PORT}
-KONG_HTTPS_PORT=${KONG_HTTPS_PORT}
-
-############
-# API - Configurações para PostgREST
-############
-
-PGRST_DB_SCHEMAS=public,storage,graphql_public
-
-# Ativa a API REST
-PGRST_ENABLED=true
-
-# URL externa da API REST
-API_EXTERNAL_URL=${API_EXTERNAL_URL}
-
-############
-# GraphQL - Configurações para GraphQL
-############
-
-# Ativa GraphQL
-GRAPHQL_ENABLED=true
-
-# URL externa do GraphQL
-GRAPHQL_EXTERNAL_URL=${GRAPHQL_EXTERNAL_URL}
-
-############
-# Realtime - Configurações para Realtime
-############
-
-# Ativa Realtime
-REALTIME_ENABLED=true
-
-# URL externa do Realtime
-REALTIME_EXTERNAL_URL=${REALTIME_EXTERNAL_URL}
-
-############
-# Storage - Configurações para Storage
-############
-
-# Ativa Storage
-STORAGE_ENABLED=true
-
-# URL externa do Storage
-STORAGE_EXTERNAL_URL=${STORAGE_EXTERNAL_URL}
-
-############
-# Dashboard - Configurações para o Studio
-############
-
-STUDIO_PORT=${STUDIO_PORT}
-DASHBOARD_USERNAME=${DASHBOARD_USERNAME}
-DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD}
-
-############
-# Configurações gerais
-############
-
-# URL do site (usada para redirecionamentos e emails)
-SITE_URL=${SITE_URL}
-EOF
+# Criar o arquivo .env diretamente (sem usar here-doc para evitar problemas)
+echo "############" > .env
+echo "# Secrets - Gere suas próprias chaves e segredos" >> .env
+echo "############" >> .env
+echo "" >> .env
+echo "POSTGRES_PASSWORD=$POSTGRES_PASSWORD" >> .env
+echo "JWT_SECRET=$JWT_SECRET" >> .env
+echo "ANON_KEY=$ANON_KEY" >> .env
+echo "SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY" >> .env
+echo "" >> .env
+echo "############" >> .env
+echo "# Database - Você pode alterar estas configurações" >> .env
+echo "############" >> .env
+echo "" >> .env
+echo "# Porta para conexão PostgreSQL" >> .env
+echo "POSTGRES_PORT=$POSTGRES_PORT" >> .env
+echo "" >> .env
+echo "############" >> .env
+echo "# API Proxy - Configuração do Kong" >> .env
+echo "############" >> .env
+echo "" >> .env
+echo "KONG_HTTP_PORT=$KONG_HTTP_PORT" >> .env
+echo "KONG_HTTPS_PORT=$KONG_HTTPS_PORT" >> .env
+echo "" >> .env
+echo "############" >> .env
+echo "# API - Configurações para PostgREST" >> .env
+echo "############" >> .env
+echo "" >> .env
+echo "PGRST_DB_SCHEMAS=public,storage,graphql_public" >> .env
+echo "" >> .env
+echo "# Ativa a API REST" >> .env
+echo "PGRST_ENABLED=true" >> .env
+echo "" >> .env
+echo "# URL externa da API REST" >> .env
+echo "API_EXTERNAL_URL=$API_EXTERNAL_URL" >> .env
+echo "" >> .env
+echo "############" >> .env
+echo "# GraphQL - Configurações para GraphQL" >> .env
+echo "############" >> .env
+echo "" >> .env
+echo "# Ativa GraphQL" >> .env
+echo "GRAPHQL_ENABLED=true" >> .env
+echo "" >> .env
+echo "# URL externa do GraphQL" >> .env
+echo "GRAPHQL_EXTERNAL_URL=$GRAPHQL_EXTERNAL_URL" >> .env
+echo "" >> .env
+echo "############" >> .env
+echo "# Realtime - Configurações para Realtime" >> .env
+echo "############" >> .env
+echo "" >> .env
+echo "# Ativa Realtime" >> .env
+echo "REALTIME_ENABLED=true" >> .env
+echo "" >> .env
+echo "# URL externa do Realtime" >> .env
+echo "REALTIME_EXTERNAL_URL=$REALTIME_EXTERNAL_URL" >> .env
+echo "" >> .env
+echo "############" >> .env
+echo "# Storage - Configurações para Storage" >> .env
+echo "############" >> .env
+echo "" >> .env
+echo "# Ativa Storage" >> .env
+echo "STORAGE_ENABLED=true" >> .env
+echo "" >> .env
+echo "# URL externa do Storage" >> .env
+echo "STORAGE_EXTERNAL_URL=$STORAGE_EXTERNAL_URL" >> .env
+echo "" >> .env
+echo "############" >> .env
+echo "# Dashboard - Configurações para o Studio" >> .env
+echo "############" >> .env
+echo "" >> .env
+echo "STUDIO_PORT=$STUDIO_PORT" >> .env
+echo "DASHBOARD_USERNAME=$DASHBOARD_USERNAME" >> .env
+echo "DASHBOARD_PASSWORD=$DASHBOARD_PASSWORD" >> .env
+echo "" >> .env
+echo "############" >> .env
+echo "# Configurações gerais" >> .env
+echo "############" >> .env
+echo "" >> .env
+echo "# URL do site (usada para redirecionamentos e emails)" >> .env
+echo "SITE_URL=$SITE_URL" >> .env
 
 echo "Arquivo .env gerado com sucesso!"
-echo "URL do site: ${SITE_URL}"
+echo "URL do site: $SITE_URL"
 echo "Credenciais do Dashboard:"
-echo "  Usuário: ${DASHBOARD_USERNAME}"
-echo "  Senha: ${DASHBOARD_PASSWORD}"
+echo "  Usuário: $DASHBOARD_USERNAME"
+echo "  Senha: $DASHBOARD_PASSWORD"
 
 # Iniciar os serviços
 echo -e "\n${C_BLUE}A iniciar todos os serviços do Supabase com Docker Compose...${C_NC}"
