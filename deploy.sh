@@ -95,15 +95,29 @@ fix_docker_compose_files() {
     for compose_file in $(find "$SCRIPT_DIR" -name "docker-compose*.yml"); do
         echo -e "${C_BLUE}Corrigindo arquivo: $compose_file${C_NC}"
         
+        # Verificar se o arquivo existe
+        if [ ! -f "$compose_file" ]; then
+            echo -e "${C_YELLOW}Aviso: Arquivo $compose_file não encontrado${C_NC}"
+            continue
+        fi
+        
+        # Fazer backup do arquivo original
+        cp "$compose_file" "${compose_file}.bak"
+        
         # Corrigir o problema do Docker socket (:/var/run/docker.sock:ro,z)
         sed -i 's|:/var/run/docker.sock:ro,z|/var/run/docker.sock:/var/run/docker.sock:ro,z|g' "$compose_file"
         
-        # Verificar se o arquivo foi modificado corretamente
-        if grep -q "/var/run/docker.sock:/var/run/docker.sock:ro,z" "$compose_file"; then
-            echo -e "${C_GREEN}Arquivo $compose_file corrigido com sucesso!${C_NC}"
-        else
-            echo -e "${C_YELLOW}Aviso: Não foi encontrado o padrão para corrigir em $compose_file${C_NC}"
+        # Corrigir outros possíveis formatos do problema do Docker socket
+        sed -i 's|/var/run/docker.sock/var/run/docker.sock|/var/run/docker.sock|g' "$compose_file"
+        
+        # Remover completamente o volume do Docker socket se ainda estiver causando problemas
+        if grep -q "docker.sock" "$compose_file"; then
+            echo -e "${C_YELLOW}Removendo completamente o volume do Docker socket...${C_NC}"
+            # Comentar a linha que contém docker.sock
+            sed -i '/docker.sock/s/^/#/' "$compose_file"
         fi
+        
+        echo -e "${C_GREEN}Arquivo $compose_file corrigido!${C_NC}"
     done
 }
 
