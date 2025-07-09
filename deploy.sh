@@ -62,6 +62,17 @@ else
     echo -e "${C_YELLOW}AVISO: O Supabase será exposto em $SITE_URL sem HTTPS. Use um domínio para produção.${C_NC}"
 fi
 
+# Perguntar sobre serviços opcionais que podem causar problemas
+echo -e "\n${C_BLUE}Deseja desativar serviços que podem causar problemas em alguns ambientes?${C_NC}"
+read -p "Desativar o serviço Vector (recomendado se estiver tendo problemas)? (S/n) " DISABLE_VECTOR
+if [[ ! $DISABLE_VECTOR =~ ^[Nn]$ ]]; then
+    DISABLE_VECTOR=true
+    echo -e "${C_YELLOW}O serviço Vector será desativado.${C_NC}"
+else
+    DISABLE_VECTOR=false
+    echo -e "${C_YELLOW}O serviço Vector será mantido ativo.${C_NC}"
+fi
+
 # Obter a configuração oficial do Supabase
 echo -e "\n${C_BLUE}A obter a configuração oficial do Supabase...${C_NC}"
 
@@ -115,6 +126,18 @@ fix_docker_compose_files() {
             echo -e "${C_YELLOW}Removendo completamente o volume do Docker socket...${C_NC}"
             # Comentar a linha que contém docker.sock
             sed -i '/docker.sock/s/^/#/' "$compose_file"
+        fi
+        
+        # Desativar serviços problemáticos se solicitado
+        if [ "$DISABLE_VECTOR" = true ]; then
+            echo -e "${C_YELLOW}Desativando o serviço Vector em $compose_file...${C_NC}"
+            # Comentar todo o serviço vector
+            sed -i '/^\s*vector:/,/^\s*[a-z]\+:/s/^/#/' "$compose_file"
+            # Remover dependências do vector em outros serviços
+            sed -i 's|\(depends_on:\s*\[.*\)vector\(.*\]\)|\1\2|g' "$compose_file"
+            sed -i 's|\[\s*,|\[|g' "$compose_file"  # Corrigir sintaxe após remoção
+            sed -i 's|,\s*\]|\]|g' "$compose_file"   # Corrigir sintaxe após remoção
+            sed -i 's|\[\s*\]|\[\]|g' "$compose_file"  # Corrigir arrays vazios
         fi
         
         echo -e "${C_GREEN}Arquivo $compose_file corrigido!${C_NC}"
