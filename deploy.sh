@@ -39,18 +39,22 @@ JWT_SECRET=$(openssl rand -base64 32)
 ANON_KEY=$(openssl rand -hex 32)
 SERVICE_KEY=$(openssl rand -hex 32)
 
-# --- 4. Configurar e Iniciar o Supabase ---
-echo -e "\n${C_BLUE}A configurar e a iniciar o Supabase via Docker...${C_NC}"
-SUPABASE_DIR="/opt/supabase-prod"
+# --- 4. Configurar e Iniciar o Supabase (Método Oficial 2024+) ---
+echo -e "\n${C_BLUE}A configurar e a iniciar o Supabase via Docker (método oficial)...${C_NC}"
+SUPABASE_DIR="/opt/supabase"
 rm -rf $SUPABASE_DIR
-GIT_TERMINAL_PROMPT=0 git clone --depth 1 https://github.com/supabase/docker.git $SUPABASE_DIR
-cd $SUPABASE_DIR/docker
+mkdir -p $SUPABASE_DIR
+cd $SUPABASE_DIR
 
-cp .env.example .env
-sed -i "s/POSTGRES_PASSWORD=postgres/POSTGRES_PASSWORD=$DB_PASSWORD/g" .env
-sed -i "s/JWT_SECRET=super-secret-jwt-token-with-at-least-32-characters-long/JWT_SECRET=$JWT_SECRET/g" .env
-sed -i "s|ANON_KEY=.*|ANON_KEY=$ANON_KEY|g" .env
-sed -i "s|SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$SERVICE_KEY|g" .env
+# Baixar docker-compose.yml e .env.example da fonte oficial
+wget -q https://raw.githubusercontent.com/supabase/supabase/develop/docker/docker-compose.yml
+wget -q https://raw.githubusercontent.com/supabase/supabase/develop/docker/.env.example -O .env
+
+# Gerar segredos automaticamente
+sed -i "s/POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$DB_PASSWORD/g" .env
+sed -i "s/JWT_SECRET=.*/JWT_SECRET=$JWT_SECRET/g" .env
+sed -i "s/ANON_KEY=.*/ANON_KEY=$ANON_KEY/g" .env
+sed -i "s/SERVICE_ROLE_KEY=.*/SERVICE_ROLE_KEY=$SERVICE_KEY/g" .env
 
 # Se não tiver domínio, expor a porta do Supabase publicamente
 if [[ ! "$HAS_DOMAIN" =~ ^[Ss]$ ]]; then
