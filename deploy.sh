@@ -62,16 +62,9 @@ else
     echo -e "${C_YELLOW}AVISO: O Supabase será exposto em $SITE_URL sem HTTPS. Use um domínio para produção.${C_NC}"
 fi
 
-# Perguntar sobre serviços opcionais que podem causar problemas
-echo -e "\n${C_BLUE}Deseja desativar serviços que podem causar problemas em alguns ambientes?${C_NC}"
-read -p "Desativar o serviço Vector (recomendado se estiver tendo problemas)? (S/n) " DISABLE_VECTOR
-if [[ ! $DISABLE_VECTOR =~ ^[Nn]$ ]]; then
-    DISABLE_VECTOR=true
-    echo -e "${C_YELLOW}O serviço Vector será desativado.${C_NC}"
-else
-    DISABLE_VECTOR=false
-    echo -e "${C_YELLOW}O serviço Vector será mantido ativo.${C_NC}"
-fi
+# O serviço Vector é necessário para o funcionamento correto do Kong
+DISABLE_VECTOR=false
+echo "O serviço Vector será mantido para garantir o funcionamento correto do Kong."
 
 # Obter a configuração oficial do Supabase
 echo -e "\n${C_BLUE}A obter a configuração oficial do Supabase...${C_NC}"
@@ -138,12 +131,46 @@ EOL
         echo -e "${C_BLUE}Usando arquivo docker-compose.yml oficial do Supabase...${C_NC}"
         cp "$TMP_DIR/supabase/docker/docker-compose.yml" "$SCRIPT_DIR/docker-compose.yml"
         
-        # Remover o serviço Vector se solicitado
-        if [ "$DISABLE_VECTOR" = true ]; then
-            echo -e "${C_YELLOW}Desativando o serviço Vector...${C_NC}"
-            # Criar um arquivo temporário sem o serviço Vector
-            sed -i '/^  vector:/,/^  [a-z]/{ /^  [a-z]/!d; /^  vector/d; }' "$SCRIPT_DIR/docker-compose.yml"
-        fi
+        # Garantir que o Kong está configurado corretamente
+        echo -e "${C_BLUE}Configurando o Kong...${C_NC}"
+        
+        # Criar o diretório para o Kong
+        mkdir -p "$SCRIPT_DIR/volumes/api"
+        
+        # Criar o arquivo kong.yml
+        cat > "$SCRIPT_DIR/volumes/api/kong.yml" << EOL
+_format_version: "2.1"
+
+services:
+  - name: auth-v1
+    url: http://auth:9999
+    routes:
+      - path_regex: /auth/v1/.*
+        strip_path: true
+    plugins:
+      - name: cors
+  - name: rest-v1
+    url: http://rest:3000
+    routes:
+      - path_regex: /rest/v1/.*
+        strip_path: true
+    plugins:
+      - name: cors
+  - name: realtime-v1
+    url: http://realtime:4000/socket/
+    routes:
+      - path_regex: /realtime/v1/.*
+        strip_path: true
+    plugins:
+      - name: cors
+  - name: storage-v1
+    url: http://storage:5000
+    routes:
+      - path_regex: /storage/v1/.*
+        strip_path: true
+    plugins:
+      - name: cors
+EOL
         
         echo -e "${C_GREEN}Arquivo docker-compose.yml configurado com sucesso!${C_NC}"
     else
