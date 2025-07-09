@@ -5,7 +5,14 @@
 # num servidor VPS Linux limpo (como Ubuntu 22.04).
 # Executa como root para instalar dependências.
 
-set -e # Termina o script imediatamente se um comando falhar
+set -e
+set -x
+trap 'echo -e "${C_RED}ERRO na linha $LINENO: $BASH_COMMAND${C_NC}"' ERR
+
+# --- Validação de acesso à internet e DNS ---
+echo -e "${C_BLUE}A validar ligação à internet e DNS...${C_NC}"
+ping -c 1 8.8.8.8 >/dev/null 2>&1 || { echo -e "${C_RED}ERRO: Sem acesso à internet (falha no ping a 8.8.8.8)${C_NC}"; exit 2; }
+ping -c 1 github.com >/dev/null 2>&1 || { echo -e "${C_RED}ERRO: Sem acesso DNS a github.com${C_NC}"; exit 2; }
 
 # --- Cores para uma melhor legibilidade ---
 C_BLUE='\033[0;34m'
@@ -42,13 +49,18 @@ SERVICE_KEY=$(openssl rand -hex 32)
 # --- 4. Configurar e Iniciar o Supabase (Método Oficial 2024+) ---
 echo -e "\n${C_BLUE}A configurar e a iniciar o Supabase via Docker (método oficial)...${C_NC}"
 SUPABASE_DIR="/opt/supabase"
-rm -rf $SUPABASE_DIR
-mkdir -p $SUPABASE_DIR
-cd $SUPABASE_DIR
+rm -rf $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao remover $SUPABASE_DIR${C_NC}"; exit 2; }
+mkdir -p $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao criar $SUPABASE_DIR${C_NC}"; exit 2; }
+cd $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao aceder a $SUPABASE_DIR${C_NC}"; exit 2; }
 
 # Baixar docker-compose.yml e .env.example da fonte oficial
-wget -q https://raw.githubusercontent.com/supabase/supabase/develop/docker/docker-compose.yml
-wget -q https://raw.githubusercontent.com/supabase/supabase/develop/docker/.env.example -O .env
+wget https://raw.githubusercontent.com/supabase/supabase/develop/docker/docker-compose.yml || { echo -e "${C_RED}ERRO: Falha ao baixar docker-compose.yml${C_NC}"; exit 2; }
+wget https://raw.githubusercontent.com/supabase/supabase/develop/docker/.env.example -O .env || { echo -e "${C_RED}ERRO: Falha ao baixar .env.example${C_NC}"; exit 2; }
+
+if [ ! -f docker-compose.yml ] || [ ! -f .env ]; then
+  echo -e "${C_RED}ERRO: Ficheiros docker-compose.yml ou .env não encontrados após download!${C_NC}"
+  exit 2
+fi
 
 # Gerar segredos automaticamente
 sed -i "s/POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$DB_PASSWORD/g" .env
