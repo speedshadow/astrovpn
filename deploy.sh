@@ -9,111 +9,66 @@ set -e
 set -x
 trap 'echo -e "${C_RED}ERRO na linha $LINENO: $BASH_COMMAND${C_NC}"' ERR
 
-# --- Validação de acesso à internet e DNS ---
-echo -e "${C_BLUE}A validar ligação à internet e DNS...${C_NC}"
-ping -c 1 8.8.8.8 >/dev/null 2>&1 || { echo -e "${C_RED}ERRO: Sem acesso à internet (falha no ping a 8.8.8.8)${C_NC}"; exit 2; }
-ping -c 1 github.com >/dev/null 2>&1 || { echo -e "${C_RED}ERRO: Sem acesso DNS a github.com${C_NC}"; exit 2; }
-
-# --- Cores para uma melhor legibilidade ---
-C_BLUE='\033[0;34m'
-C_GREEN='\033[0;32m'
+# Cores e helpers
 C_RED='\033[0;31m'
+C_GREEN='\033[0;32m'
+C_BLUE='\033[0;34m'
 C_YELLOW='\033[1;33m'
-C_NC='\033[0m' # No Color
+C_NC='\033[0m'
 
-echo -e "${C_BLUE}Bem-vindo ao script de implementação de produção do AstroVPN!${C_NC}"
+# Garante que o script corre no diretório onde ele se encontra
+cd "$(dirname "$0")"
 
-# Verificar se o script está a ser executado como root
-if [ "$(id -u)" -ne 0 ]; then
-  echo -e "${C_RED}Erro: Este script precisa de ser executado como root. Por favor, use 'sudo ./deploy.sh'${C_NC}"
-  exit 1
+# --- 1. Boas-vindas e Confirmação ---
+echo -e "${C_BLUE}Bem-vindo ao Deploy Automatizado do AstroVPN com Supabase!${C_NC}"
+echo -e "${C_YELLOW}AVISO: Este script irá parar e apagar TODOS os containers e volumes Docker existentes associados a este projeto para garantir um deploy limpo.${C_NC}"
+read -p "Deseja continuar? (s/N) " -n 1 -r
+echo
+if [[ ! $REPLY =~ ^[Ss]$ ]]; then
+    echo "Deploy cancelado."
+    exit 1
 fi
 
-echo "Você tem domínio? (s/N)"
-read HAS_DOMAIN
+# --- 2. Limpeza Total ---
+echo -e "\n${C_BLUE}A parar e a remover containers e volumes antigos...${C_NC}"
+docker compose down -v --remove-orphans || true
+
+# --- 3. Configuração do Domínio/IP ---
+echo -e "\n${C_BLUE}Como pretende aceder ao Supabase?${C_NC}"
+read -p "Vai usar um domínio (ex: supabase.meudominio.com)? (s/N) " HAS_DOMAIN
+
 if [[ "$HAS_DOMAIN" =~ ^[Ss]$ ]]; then
-  read -p "Indique o domínio: " DOMAIN
-  DOMAIN_OR_IP="https://$DOMAIN"
+    read -p "Insira o seu domínio para o Supabase: " DOMAIN
+    SITE_URL="https://$DOMAIN"
 else
-  DOMAIN_OR_IP="http://$(curl -s ifconfig.me):8000"
-  echo "AVISO: O Supabase ficará exposto no IP público sem HTTPS!"
+    # Tenta obter o IP público automaticamente
+    IP_ADDRESS=$(curl -s ifconfig.me || hostname -I | awk '{print $1}')
+    SITE_URL="http://$IP_ADDRESS:8000"
+    echo -e "${C_YELLOW}AVISO: O Supabase será exposto em $SITE_URL sem HTTPS. Use um domínio para produção.${C_NC}"
 fi
 
-./generate-env.sh "$DOMAIN_OR_IP"
+# --- 4. Geração do .env ---
+echo -e "\n${C_BLUE}A gerar o ficheiro .env com novos segredos...${C_NC}"
+chmod +x ./generate-env.sh
+./generate-env.sh "$SITE_URL"
 
+# --- 5. Deploy com Docker Compose ---
+echo -e "\n${C_BLUE}A iniciar todos os serviços do Supabase com Docker Compose...${C_NC}"
 docker compose up -d --build
 
-echo "Deploy concluído. Aceda em: $DOMAIN_OR_IP"
+# --- 6. Verificação de Estado e Conclusão ---
+echo -e "\n${C_BLUE}A aguardar que os serviços principais fiquem saudáveis...${C_NC}"
+sleep 10 # Dá tempo para os containers arrancarem
 
-# --- 4. Configurar e Iniciar o Supabase (Método Oficial 2024+) ---
-echo -e "\n${C_BLUE}A configurar e a iniciar o Supabase via Docker (método oficial)...${C_NC}"
-SUPABASE_DIR="supabase"
-rm -rf $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao remover $SUPABASE_DIR${C_NC}"; exit 2; }
-mkdir -p $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao criar $SUPABASE_DIR${C_NC}"; exit 2; }
-cd $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao aceder a $SUPABASE_DIR${C_NC}"; exit 2; }
+CRITICAL_CONTAINERS=("supabase-db" "supabase-kong" "supabase-auth" "supabase-rest" "supabase-storage")
+ALL_HEALTHY=true
 
-# --- Reset total dos volumes Docker do Supabase para garantir sincronização de utilizadores/passwords ---
-echo -e "${C_YELLOW}A remover todos os volumes Docker do Supabase para reset total...${C_NC}"
-cd "$(dirname "$0")"
-echo "A parar todos os containers..."
-docker compose down -v || true
-echo "A remover containers órfãos..."
-docker stop $(docker ps -aq) 2>/dev/null || true
-docker rm $(docker ps -aq) 2>/dev/null || true
-echo "A remover volumes supabase/db_data..."
-docker volume ls -q | grep supabase | xargs -r docker volume rm 2>/dev/null || true
-docker volume ls -q | grep db_data | xargs -r docker volume rm 2>/dev/null || true
-
-# Obter ficheiros do Supabase via git clone (método oficial 2025)
-git clone --depth 1 https://github.com/supabase/supabase.git $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao clonar o repositório Supabase${C_NC}"; exit 2; }
-cd $SUPABASE_DIR/docker || { echo -e "${C_RED}ERRO: Falha ao aceder à pasta docker${C_NC}"; exit 2; }
-cp .env.example .env || { echo -e "${C_RED}ERRO: Falha ao copiar .env.example${C_NC}"; exit 2; }
-
-# --- Garante que todas as variáveis críticas de password e segredos estão presentes no .env ---
-add_env_if_missing() {
-  VAR="$1"
-  VAL="$2"
-  grep -q "^$VAR=" .env || echo "$VAR=$VAL" >> .env
-}
-
-# Lista de variáveis sensíveis do .env.example oficial do Supabase
-for v in \
-  POSTGRES_PASSWORD JWT_SECRET ANON_KEY SERVICE_ROLE_KEY DASHBOARD_PASSWORD SECRET_KEY_BASE VAULT_ENC_KEY \
-  LOGFLARE_PUBLIC_ACCESS_TOKEN LOGFLARE_PRIVATE_ACCESS_TOKEN \
-  SMTP_PASS \
-  ; do
-  add_env_if_missing "$v" "PLACEHOLDER"
-done
-
-# Adiciona variáveis de password comuns de serviços Supabase
-for v in AUTHENTICATOR_PASSWORD ANON_PASSWORD SUPABASE_AUTH_ADMIN_PASSWORD; do
-  add_env_if_missing "$v" "PLACEHOLDER"
-done
-
-# Função para percent-encode (URL encode) passwords/secrets
-urlencode() {
-  local LANG=C
-  local length="${#1}"
-  for (( i = 0; i < length; i++ )); do
-    local c="${1:i:1}"
-    case $c in
-      [a-zA-Z0-9.~_-]) printf "$c" ;;
-      *) printf '%%%02X' "'${c}" ;;
-    esac
-  done
-}
-
-# Gerar e substituir segredos automaticamente para todas as variáveis sensíveis
-for var in $(grep -o '^[A-Z0-9_]*_PASSWORD' .env | sort | uniq); do
-  RAW=$(openssl rand -base64 32)
-  ENC=$(urlencode "$RAW")
-  sed -i "s|^$var=.*|$var=$ENC|g" .env
-done
-for var in $(grep -o '^[A-Z0-9_]*_KEY' .env | sort | uniq); do
-  RAW=$(openssl rand -hex 32)
-  ENC=$(urlencode "$RAW")
-  sed -i "s|^$var=.*|$var=$ENC|g" .env
-done
+for service in "${CRITICAL_CONTAINERS[@]}"; do
+    HEALTH_STATUS=$(docker inspect --format '{{.State.Health.Status}}' "$service" 2>/dev/null || echo "no-health-check")
+    if [[ "$HEALTH_STATUS" == "healthy" ]] || [[ "$HEALTH_STATUS" == "no-health-check" ]]; then
+        echo -e "  - ${C_GREEN}$service está operacional.${C_NC}"
+    elif [[ "$HEALTH_STATUS" == "starting" ]]; then
+        echo -e "  - ${C_YELLOW}$service está a arrancar... (isto é normal)${C_NC}"
 for var in $(grep -o '^[A-Z0-9_]*_SECRET' .env | sort | uniq); do
   RAW=$(openssl rand -base64 32)
   ENC=$(urlencode "$RAW")
