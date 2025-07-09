@@ -101,9 +101,9 @@ rm -rf "$TMP_DIR"
 # Corrigir problemas nos arquivos docker-compose.yml
 echo -e "${C_BLUE}Corrigindo configurações do Docker Compose...${C_NC}"
 
-# Função para criar um arquivo docker-compose.yml simplificado sem o serviço Vector
+# Função para usar um arquivo docker-compose.yml simplificado sem o serviço Vector
 fix_docker_compose_files() {
-    echo -e "${C_BLUE}Criando arquivo docker-compose.yml simplificado...${C_NC}"
+    echo -e "${C_BLUE}Usando arquivo docker-compose.yml simplificado...${C_NC}"
     
     # Fazer backup do arquivo original se existir
     if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
@@ -111,163 +111,16 @@ fix_docker_compose_files() {
         echo -e "${C_YELLOW}Backup do arquivo original salvo como docker-compose.yml.original${C_NC}"
     fi
     
-    # Criar um arquivo docker-compose.yml simplificado sem o serviço Vector
-    cat > "$SCRIPT_DIR/docker-compose.yml" << 'EOL'
-version: '3.8'
-
-services:
-  studio:
-    image: supabase/studio:latest
-    restart: unless-stopped
-    ports:
-      - 8000:3000
-    environment:
-      - STUDIO_PG_META_URL=http://meta:8080
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - DEFAULT_ORGANIZATION_NAME=AstroVPN
-      - SUPABASE_URL=http://kong:8000
-      - SUPABASE_PUBLIC_URL=${SITE_URL}
-      - SUPABASE_ANON_KEY=${ANON_KEY}
-      - SUPABASE_SERVICE_KEY=${SERVICE_ROLE_KEY}
-
-  kong:
-    image: kong:2.8.1
-    restart: unless-stopped
-    ports:
-      - 8000:8000
-    environment:
-      - KONG_DATABASE=off
-      - KONG_DECLARATIVE_CONFIG=/var/lib/kong/kong.yml
-      - KONG_DNS_ORDER=LAST,A,CNAME
-      - KONG_PLUGINS=request-transformer,cors,key-auth,acl
-    volumes:
-      - ./volumes/api:/var/lib/kong
-
-  auth:
-    image: supabase/gotrue:latest
-    restart: unless-stopped
-    environment:
-      - GOTRUE_API_HOST=0.0.0.0
-      - GOTRUE_API_PORT=9999
-      - API_EXTERNAL_URL=${SITE_URL}/auth
-      - GOTRUE_DB_DRIVER=postgres
-      - GOTRUE_DB_HOST=db
-      - GOTRUE_DB_PORT=5432
-      - GOTRUE_DB_NAME=postgres
-      - GOTRUE_DB_USER=supabase_auth_admin
-      - GOTRUE_DB_PASSWORD=${POSTGRES_PASSWORD}
-      - GOTRUE_SITE_URL=${SITE_URL}
-      - GOTRUE_JWT_SECRET=${JWT_SECRET}
-      - GOTRUE_JWT_EXP=3600
-      - GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated
-      - GOTRUE_DISABLE_SIGNUP=${DISABLE_SIGNUP}
-
-  rest:
-    image: postgrest/postgrest:latest
-    restart: unless-stopped
-    environment:
-      - PGRST_DB_URI=postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
-      - PGRST_DB_SCHEMA=public,storage
-      - PGRST_DB_ANON_ROLE=anon
-      - PGRST_JWT_SECRET=${JWT_SECRET}
-      - PGRST_DB_USE_LEGACY_GUCS=false
-
-  storage:
-    image: supabase/storage-api:latest
-    restart: unless-stopped
-    environment:
-      - ANON_KEY=${ANON_KEY}
-      - SERVICE_KEY=${SERVICE_ROLE_KEY}
-      - POSTGREST_URL=http://rest:3000
-      - PGRST_JWT_SECRET=${JWT_SECRET}
-      - DATABASE_URL=postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
-      - FILE_SIZE_LIMIT=52428800
-      - STORAGE_BACKEND=file
-      - FILE_STORAGE_BACKEND_PATH=/var/lib/storage
-      - TENANT_ID=stub
-      - REGION=stub
-      - GLOBAL_S3_BUCKET=stub
-    volumes:
-      - ./volumes/storage:/var/lib/storage
-
-  meta:
-    image: supabase/postgres-meta:latest
-    restart: unless-stopped
-    environment:
-      - PG_META_PORT=8080
-      - PG_META_DB_HOST=db
-      - PG_META_DB_PORT=5432
-      - PG_META_DB_NAME=postgres
-      - PG_META_DB_USER=supabase_admin
-      - PG_META_DB_PASSWORD=${POSTGRES_PASSWORD}
-
-  db:
-    image: supabase/postgres:latest
-    restart: unless-stopped
-    ports:
-      - 5432:5432
-    environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - JWT_SECRET=${JWT_SECRET}
-      - POSTGRES_DB=postgres
-    volumes:
-      - ./volumes/db/data:/var/lib/postgresql/data
-      - ./volumes/db/init:/docker-entrypoint-initdb.d
-
-  realtime:
-    image: supabase/realtime:latest
-    restart: unless-stopped
-    environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_NAME=postgres
-      - DB_USER=supabase_admin
-      - DB_PASSWORD=${POSTGRES_PASSWORD}
-      - PORT=4000
-      - JWT_SECRET=${JWT_SECRET}
-      - REPLICATION_MODE=RLS
-      - REPLICATION_POLL_INTERVAL=100
-      - SECURE_CHANNELS=true
-      - SLOT_NAME=supabase_realtime
-      - TEMPORARY_SLOT=true
-
-  imgproxy:
-    image: darthsim/imgproxy:latest
-    restart: unless-stopped
-    environment:
-      - IMGPROXY_BIND=:5001
-      - IMGPROXY_LOCAL_FILESYSTEM_ROOT=/
-      - IMGPROXY_USE_ETAG=true
-    volumes:
-      - ./volumes/storage:/var/lib/storage
-
-  functions:
-    image: supabase/edge-runtime:latest
-    restart: unless-stopped
-    environment:
-      - JWT_SECRET=${JWT_SECRET}
-      - SUPABASE_URL=http://kong:8000
-      - SUPABASE_ANON_KEY=${ANON_KEY}
-      - SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}
-      - SUPABASE_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/postgres
-    volumes:
-      - ./volumes/functions:/home/deno/functions
-
-  pooler:
-    image: supabase/postgres-meta:latest
-    restart: unless-stopped
-    environment:
-      - PG_META_PORT=8080
-      - PG_META_DB_HOST=db
-      - PG_META_DB_PORT=5432
-      - PG_META_DB_NAME=postgres
-      - PG_META_DB_USER=supabase_admin
-      - PG_META_DB_PASSWORD=${POSTGRES_PASSWORD}
-
-volumes:
-  db-config:
-    driver: local
-EOL
+    # Copiar o arquivo docker-compose-simple.yml para docker-compose.yml
+    cp "$SCRIPT_DIR/docker-compose-simple.yml" "$SCRIPT_DIR/docker-compose.yml"
+    
+    # Substituir as variáveis de ambiente no arquivo
+    sed -i "s/\${POSTGRES_PASSWORD}/$POSTGRES_PASSWORD/g" "$SCRIPT_DIR/docker-compose.yml"
+    sed -i "s|\${SITE_URL}|$SITE_URL|g" "$SCRIPT_DIR/docker-compose.yml"
+    sed -i "s/\${ANON_KEY}/$ANON_KEY/g" "$SCRIPT_DIR/docker-compose.yml"
+    sed -i "s/\${SERVICE_ROLE_KEY}/$SERVICE_ROLE_KEY/g" "$SCRIPT_DIR/docker-compose.yml"
+    sed -i "s/\${JWT_SECRET}/$JWT_SECRET/g" "$SCRIPT_DIR/docker-compose.yml"
+    sed -i "s/\${DISABLE_SIGNUP}/$DISABLE_SIGNUP/g" "$SCRIPT_DIR/docker-compose.yml"
     
     echo -e "${C_GREEN}Arquivo docker-compose.yml simplificado criado com sucesso!${C_NC}"
 }
