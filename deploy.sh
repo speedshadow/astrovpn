@@ -178,6 +178,26 @@ start_services() {
     echo -e "${C_GREEN}Todos os serviços iniciados com sucesso!${C_NC}"
 }
 
+# Função para limpar instalação anterior
+clean_previous_install() {
+    echo -e "\n${C_BLUE}Limpando instalação anterior...${C_NC}"
+    
+    # Parar todos os containers e remover volumes
+    if [ -d "/root/astrovpn" ]; then
+        cd /root/astrovpn
+        docker compose down -v || true
+    fi
+
+    # Remover diretório astrovpn
+    echo -e "${C_YELLOW}Removendo diretório /root/astrovpn...${C_NC}"
+    rm -rf /root/astrovpn
+
+    # Criar novo diretório
+    echo -e "${C_GREEN}Criando novo diretório /root/astrovpn...${C_NC}"
+    mkdir -p /root/astrovpn
+    cd /root/astrovpn
+}
+
 # Função principal
 main() {
     echo -e "${C_BLUE}=== Instalação do Supabase ===${C_NC}"
@@ -189,6 +209,7 @@ main() {
     fi
 
     check_dependencies
+    clean_previous_install
     setup_environment
     start_services
 
