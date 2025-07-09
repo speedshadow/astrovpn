@@ -47,17 +47,22 @@ echo "Deploy concluído. Aceda em: $DOMAIN_OR_IP"
 
 # --- 4. Configurar e Iniciar o Supabase (Método Oficial 2024+) ---
 echo -e "\n${C_BLUE}A configurar e a iniciar o Supabase via Docker (método oficial)...${C_NC}"
-SUPABASE_DIR="/opt/supabase"
+SUPABASE_DIR="supabase"
 rm -rf $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao remover $SUPABASE_DIR${C_NC}"; exit 2; }
 mkdir -p $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao criar $SUPABASE_DIR${C_NC}"; exit 2; }
 cd $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao aceder a $SUPABASE_DIR${C_NC}"; exit 2; }
 
 # --- Reset total dos volumes Docker do Supabase para garantir sincronização de utilizadores/passwords ---
 echo -e "${C_YELLOW}A remover todos os volumes Docker do Supabase para reset total...${C_NC}"
-if [ -f docker-compose.yml ]; then
-  docker compose down -v || true
-fi
+cd "$(dirname "$0")"
+echo "A parar todos os containers..."
+docker compose down -v || true
+echo "A remover containers órfãos..."
+docker stop $(docker ps -aq) 2>/dev/null || true
+docker rm $(docker ps -aq) 2>/dev/null || true
+echo "A remover volumes supabase/db_data..."
 docker volume ls -q | grep supabase | xargs -r docker volume rm 2>/dev/null || true
+docker volume ls -q | grep db_data | xargs -r docker volume rm 2>/dev/null || true
 
 # Obter ficheiros do Supabase via git clone (método oficial 2025)
 git clone --depth 1 https://github.com/supabase/supabase.git $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao clonar o repositório Supabase${C_NC}"; exit 2; }
