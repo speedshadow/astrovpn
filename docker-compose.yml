@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  db:
+    image: supabase/postgres:15.1.0.145
+    restart: always
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    env_file: .env
+
+  rest:
+    image: supabase/postgrest:latest
+    depends_on:
+      - db
+    env_file: .env
+
+  auth:
+    image: supabase/gotrue:latest
+    depends_on:
+      - db
+    env_file: .env
+
+  storage:
+    image: supabase/storage-api:latest
+    depends_on:
+      - db
+    env_file: .env
+
+  kong:
+    image: supabase/kong:latest
+    depends_on:
+      - db
+      - rest
+      - auth
+      - storage
+    env_file: .env
+    ports:
+      - "8000:8000"
+      - "8443:8443"
+
+volumes:
+  db_data:

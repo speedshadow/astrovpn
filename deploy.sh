@@ -21,7 +21,6 @@ C_RED='\033[0;31m'
 C_YELLOW='\033[1;33m'
 C_NC='\033[0m' # No Color
 
-# --- 1. Boas-vindas e Verificação de Pré-requisitos ---
 echo -e "${C_BLUE}Bem-vindo ao script de implementação de produção do AstroVPN!${C_NC}"
 
 # Verificar se o script está a ser executado como root
@@ -30,17 +29,14 @@ if [ "$(id -u)" -ne 0 ]; then
   exit 1
 fi
 
-# Instalar dependências essenciais
-echo -e "\n${C_BLUE}A instalar dependências (Docker, Git...)${C_NC}"
-apt-get update
-apt-get install -y docker.io docker-compose-v2 git curl
-
-# --- 2. Perguntar apenas sobre domínio ---
-echo -e "\n${C_YELLOW}Preciso de alguma informação sua:${C_NC}"
-read -p "Você tem um nome de domínio pronto a usar? (s/N) " HAS_DOMAIN
-
-# --- 3. Gerar Segredos de Produção ---
-echo -e "\n${C_BLUE}A gerar segredos de produção seguros...${C_NC}"
+echo "Você tem domínio? (s/N)"
+read HAS_DOMAIN
+if [[ "$HAS_DOMAIN" =~ ^[Ss]$ ]]; then
+  read -p "Indique o domínio: " DOMAIN
+  DOMAIN_OR_IP="https://$DOMAIN"
+else
+  DOMAIN_OR_IP="http://$(curl -s ifconfig.me):8000"
+  echo "AVISO: O Supabase ficará exposto no IP público sem HTTPS!"
 DB_PASSWORD=$(openssl rand -base64 32)
 JWT_SECRET=$(openssl rand -base64 32)
 ANON_KEY=$(openssl rand -hex 32)
