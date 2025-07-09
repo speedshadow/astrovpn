@@ -67,11 +67,16 @@ sed -i "s|SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$SERVICE_KEY|g" .env
 # Se não tiver domínio, expor a porta do Supabase publicamente
 if [[ ! "$HAS_DOMAIN" =~ ^[Ss]$ ]]; then
     echo -e "${C_YELLOW}A expor a porta 8000 do Supabase, pois não foi fornecido um domínio.${C_NC}"
+    echo -e "${C_RED}AVISO DE SEGURANÇA: O Supabase ficará acessível publicamente em http://<IP>:8000. Não use em produção sem HTTPS ou firewall!${C_NC}"
     sed -i '/kong:/,/^\s*$/s/#- 8000:8000/- 8000:8000/' ./docker-compose.yml
 fi
 
 echo -e "\n${C_BLUE}A iniciar os contentores do Supabase...${C_NC}"
-docker compose up -d
+if ! docker compose up -d; then
+  echo -e "${C_YELLOW}AVISO: Um ou mais serviços falharam ao iniciar, mas o deploy vai continuar. Verifica os logs abaixo!${C_NC}"
+  echo -e "${C_YELLOW}Logs do supabase-analytics (últimos 50):${C_NC}"
+  docker logs --tail=50 supabase-analytics || echo -e "${C_YELLOW}Não foi possível obter logs do supabase-analytics.${C_NC}"
+fi
 
 # --- 5. Diagnóstico automático dos containers ---
 echo -e "\n${C_BLUE}A verificar o estado dos containers Supabase...${C_NC}"
@@ -81,8 +86,9 @@ CRITICAL_CONTAINERS=(supabase-db supabase-rest supabase-auth supabase-storage su
 for cname in "${CRITICAL_CONTAINERS[@]}"; do
   STATUS=$(docker inspect -f '{{.State.Status}}' $cname 2>/dev/null || echo "unknown")
   HEALTH=$(docker inspect -f '{{.State.Health.Status}}' $cname 2>/dev/null || echo "unknown")
-  if [[ "$STATUS" != "running" ]] || ([[ "$HEALTH" != "healthy" ]] && [[ "$HEALTH" != "unknown" ]]); then
-    echo -e "${C_RED}Container $cname está $STATUS/$HEALTH. Tentando correção automática...${C_NC}"
+
+  if [[ "$STATUS" != "running" ]]; then
+    echo -e "${C_RED}ERRO: Container $cname não está a correr (status: $STATUS). Tentando correção automática...${C_NC}"
     if [[ "$cname" == "supabase-db" ]]; then
       echo -e "${C_YELLOW}Corrigindo permissões da base de dados...${C_NC}"
       sudo chown -R 70:70 $SUPABASE_DIR/volumes/db 2>/dev/null || true
@@ -90,14 +96,27 @@ for cname in "${CRITICAL_CONTAINERS[@]}"; do
     docker restart $cname
     sleep 5
     STATUS2=$(docker inspect -f '{{.State.Status}}' $cname 2>/dev/null || echo "unknown")
-    HEALTH2=$(docker inspect -f '{{.State.Health.Status}}' $cname 2>/dev/null || echo "unknown")
-    if [[ "$STATUS2" != "running" ]] || ([[ "$HEALTH2" != "healthy" ]] && [[ "$HEALTH2" != "unknown" ]]); then
-      echo -e "${C_RED}Container $cname continua com problemas ($STATUS2/$HEALTH2). Últimos logs:${C_NC}"
+    if [[ "$STATUS2" != "running" ]]; then
+      echo -e "${C_RED}Container $cname continua parado ($STATUS2). Últimos logs:${C_NC}"
       docker logs --tail=20 $cname
       ALL_OK=0
     else
       echo -e "${C_GREEN}Container $cname recuperado!${C_NC}"
     fi
+  elif [[ "$HEALTH" == "unhealthy" ]]; then
+    echo -e "${C_RED}ERRO: Container $cname está unhealthy! Tentando correção automática...${C_NC}"
+    docker restart $cname
+    sleep 5
+    HEALTH2=$(docker inspect -f '{{.State.Health.Status}}' $cname 2>/dev/null || echo "unknown")
+    if [[ "$HEALTH2" == "unhealthy" ]]; then
+      echo -e "${C_RED}Container $cname continua unhealthy. Últimos logs:${C_NC}"
+      docker logs --tail=20 $cname
+      ALL_OK=0
+    else
+      echo -e "${C_GREEN}Container $cname recuperado!${C_NC}"
+    fi
+  elif [[ "$HEALTH" == "starting" || "$HEALTH" == "unknown" ]]; then
+    echo -e "${C_YELLOW}AVISO: Container $cname está $STATUS/$HEALTH. Pode demorar a ficar saudável ou não ter healthcheck definido.${C_NC}"
   else
     echo -e "${C_GREEN}Container $cname está saudável (${STATUS}/${HEALTH})${C_NC}"
   fi
