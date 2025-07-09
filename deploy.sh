@@ -41,8 +41,8 @@ if [[ "$HAS_DOMAIN" =~ ^[Ss]$ ]]; then
     read -p "Insira o seu domínio para o Supabase: " DOMAIN
     SITE_URL="https://$DOMAIN"
 else
-    # Tenta obter o IP público automaticamente
-    IP_ADDRESS=$(curl -s ifconfig.me || hostname -I | awk '{print $1}')
+    # Tenta obter o IP público (forçando IPv4) automaticamente
+    IP_ADDRESS=$(curl -4 -s ifconfig.me || hostname -I | awk '{print $1}')
     SITE_URL="http://$IP_ADDRESS:8000"
     echo -e "${C_YELLOW}AVISO: O Supabase será exposto em $SITE_URL sem HTTPS. Use um domínio para produção.${C_NC}"
 fi
@@ -238,4 +238,3 @@ EOF
 fi
 
 echo -e "Pode monitorizar a sua aplicação com o comando: ${C_YELLOW}pm2 monit${C_NC}"
-

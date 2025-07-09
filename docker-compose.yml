@@ -20,7 +20,7 @@ services:
     env_file: .env
 
   auth:
-    image: supabase/gotrue:v2.145.0
+    image: supabase/gotrue:latest
     restart: always
     depends_on:
       db:
@@ -28,7 +28,7 @@ services:
     env_file: .env
 
   storage:
-    image: supabase/storage-api:v1.0.9
+    image: supabase/storage-api:latest
     restart: always
     depends_on:
       db:
