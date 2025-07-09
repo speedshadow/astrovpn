@@ -101,159 +101,55 @@ rm -rf "$TMP_DIR"
 # Corrigir problemas nos arquivos docker-compose.yml
 echo -e "${C_BLUE}Corrigindo configurações do Docker Compose...${C_NC}"
 
-# Função para usar um arquivo docker-compose.yml simplificado sem o serviço Vector
+# Função para usar o arquivo docker-compose.yml oficial do Supabase
 fix_docker_compose_files() {
-    echo -e "${C_BLUE}Usando arquivo docker-compose.yml simplificado...${C_NC}"
+    echo -e "${C_BLUE}Configurando docker-compose.yml...${C_NC}"
     
     # Fazer backup do arquivo original se existir
     if [ -f "$SCRIPT_DIR/docker-compose.yml" ]; then
         cp "$SCRIPT_DIR/docker-compose.yml" "$SCRIPT_DIR/docker-compose.yml.original"
         echo -e "${C_YELLOW}Backup do arquivo original salvo como docker-compose.yml.original${C_NC}"
     fi
-    
-    # Criar arquivo .env antes do docker-compose.yml
-    echo -e "${C_BLUE}Criando arquivo .env no diretório raiz...${C_NC}"
+
+    # Criar arquivo .env com as variáveis de ambiente
+    echo -e "${C_BLUE}Criando arquivo .env...${C_NC}"
     cat > "$SCRIPT_DIR/.env" << EOL
-POSTGRES_PASSWORD=$POSTGRES_PASSWORD
-SITE_URL=$SITE_URL
-ANON_KEY=$ANON_KEY
-SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
-JWT_SECRET=$JWT_SECRET
-DISABLE_SIGNUP=$DISABLE_SIGNUP
+# Variáveis do Supabase
+POSTGRES_PASSWORD="$POSTGRES_PASSWORD"
+SITE_URL="$SITE_URL"
+ANON_KEY="$ANON_KEY"
+SERVICE_ROLE_KEY="$SERVICE_ROLE_KEY"
+JWT_SECRET="$JWT_SECRET"
+DISABLE_SIGNUP="$DISABLE_SIGNUP"
+
+# Variáveis adicionais necessárias
+API_EXTERNAL_URL="${SITE_URL}/auth"
+GOTRUE_SITE_URL="$SITE_URL"
+GOTRUE_DB_PASSWORD="$POSTGRES_PASSWORD"
+PGRST_DB_URI="postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres"
+PGRST_JWT_SECRET="$JWT_SECRET"
+DB_PASSWORD="$POSTGRES_PASSWORD"
+DATABASE_URL="postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres"
+PG_META_DB_PASSWORD="$POSTGRES_PASSWORD"
 EOL
     
-    # Criar arquivo docker-compose.yml simplificado
-    echo -e "${C_BLUE}Criando arquivo docker-compose.yml simplificado...${C_NC}"
-    cat > "$SCRIPT_DIR/docker-compose.yml" << EOL
-version: '3.8'
-
-services:
-  studio:
-    image: supabase/studio:latest
-    restart: unless-stopped
-    ports:
-      - 8000:3000
-    environment:
-      STUDIO_PG_META_URL: http://meta:8080
-      DEFAULT_ORGANIZATION_NAME: AstroVPN
-      SUPABASE_URL: http://kong:8000
-
-  kong:
-    image: kong:2.8.1
-    restart: unless-stopped
-    ports:
-      - 8000:8000
-    environment:
-      KONG_DATABASE: "off"
-      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
-      KONG_DNS_ORDER: LAST,A,CNAME
-      KONG_PLUGINS: request-transformer,cors,key-auth,acl
-    volumes:
-      - ./volumes/api:/var/lib/kong
-
-  auth:
-    image: supabase/gotrue:latest
-    restart: unless-stopped
-    environment:
-      GOTRUE_API_HOST: 0.0.0.0
-      GOTRUE_API_PORT: 9999
-      GOTRUE_DB_DRIVER: postgres
-      GOTRUE_DB_HOST: db
-      GOTRUE_DB_PORT: 5432
-      GOTRUE_DB_NAME: postgres
-      GOTRUE_DB_USER: supabase_auth_admin
-      GOTRUE_JWT_EXP: 3600
-      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
-
-  rest:
-    image: postgrest/postgrest:latest
-    restart: unless-stopped
-    environment:
-      PGRST_DB_SCHEMA: public,storage
-      PGRST_DB_ANON_ROLE: anon
-      PGRST_DB_USE_LEGACY_GUCS: "false"
-
-  storage:
-    image: supabase/storage-api:latest
-    restart: unless-stopped
-    environment:
-      STORAGE_BACKEND: file
-      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
-      TENANT_ID: stub
-      REGION: stub
-      GLOBAL_S3_BUCKET: stub
-      FILE_SIZE_LIMIT: 52428800
-    volumes:
-      - ./volumes/storage:/var/lib/storage
-
-  meta:
-    image: supabase/postgres-meta:latest
-    restart: unless-stopped
-    environment:
-      PG_META_PORT: 8080
-      PG_META_DB_HOST: db
-      PG_META_DB_PORT: 5432
-      PG_META_DB_NAME: postgres
-      PG_META_DB_USER: supabase_admin
-
-  db:
-    image: supabase/postgres:latest
-    restart: unless-stopped
-    ports:
-      - 5432:5432
-    environment:
-      POSTGRES_DB: postgres
-    volumes:
-      - ./volumes/db/data:/var/lib/postgresql/data
-      - ./volumes/db/init:/docker-entrypoint-initdb.d
-
-  realtime:
-    image: supabase/realtime:latest
-    restart: unless-stopped
-    environment:
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_NAME: postgres
-      DB_USER: supabase_admin
-      PORT: 4000
-      REPLICATION_MODE: RLS
-      REPLICATION_POLL_INTERVAL: 100
-      SECURE_CHANNELS: "true"
-      SLOT_NAME: supabase_realtime
-      TEMPORARY_SLOT: "true"
-
-  imgproxy:
-    image: darthsim/imgproxy:latest
-    restart: unless-stopped
-    environment:
-      IMGPROXY_BIND: :5001
-      IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
-      IMGPROXY_USE_ETAG: "true"
-    volumes:
-      - ./volumes/storage:/var/lib/storage
-
-  functions:
-    image: supabase/edge-runtime:latest
-    restart: unless-stopped
-    environment:
-      SUPABASE_URL: http://kong:8000
-    volumes:
-      - ./volumes/functions:/home/deno/functions
-
-  pooler:
-    image: supabase/postgres-meta:latest
-    restart: unless-stopped
-    environment:
-      PG_META_PORT: 8080
-      PG_META_DB_HOST: db
-      PG_META_DB_PORT: 5432
-      PG_META_DB_NAME: postgres
-      PG_META_DB_USER: supabase_admin
-
-volumes:
-  db-config:
-    driver: local
-EOL
+    # Usar o arquivo docker-compose.yml oficial do Supabase
+    if [ -f "$TMP_DIR/supabase/docker/docker-compose.yml" ]; then
+        echo -e "${C_BLUE}Usando arquivo docker-compose.yml oficial do Supabase...${C_NC}"
+        cp "$TMP_DIR/supabase/docker/docker-compose.yml" "$SCRIPT_DIR/docker-compose.yml"
+        
+        # Remover o serviço Vector se solicitado
+        if [ "$DISABLE_VECTOR" = true ]; then
+            echo -e "${C_YELLOW}Desativando o serviço Vector...${C_NC}"
+            # Criar um arquivo temporário sem o serviço Vector
+            sed -i '/^  vector:/,/^  [a-z]/{ /^  [a-z]/!d; /^  vector/d; }' "$SCRIPT_DIR/docker-compose.yml"
+        fi
+        
+        echo -e "${C_GREEN}Arquivo docker-compose.yml configurado com sucesso!${C_NC}"
+    else
+        echo -e "${C_RED}Erro: Arquivo docker-compose.yml oficial não encontrado!${C_NC}"
+        exit 1
+    fi
 # Configurações do Supabase
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 SITE_URL=$SITE_URL
