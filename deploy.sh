@@ -53,6 +53,13 @@ rm -rf $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao remover $SUPABASE_DIR$
 mkdir -p $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao criar $SUPABASE_DIR${C_NC}"; exit 2; }
 cd $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao aceder a $SUPABASE_DIR${C_NC}"; exit 2; }
 
+# --- Reset total dos volumes Docker do Supabase para garantir sincronização de utilizadores/passwords ---
+echo -e "${C_YELLOW}A remover todos os volumes Docker do Supabase para reset total...${C_NC}"
+if [ -f docker-compose.yml ]; then
+  docker compose down -v || true
+fi
+docker volume ls -q | grep supabase | xargs -r docker volume rm 2>/dev/null || true
+
 # Obter ficheiros do Supabase via git clone (método oficial 2025)
 git clone --depth 1 https://github.com/supabase/supabase.git $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao clonar o repositório Supabase${C_NC}"; exit 2; }
 cd $SUPABASE_DIR/docker || { echo -e "${C_RED}ERRO: Falha ao aceder à pasta docker${C_NC}"; exit 2; }
