@@ -114,7 +114,20 @@ fix_docker_compose_files() {
     # Copiar o arquivo docker-compose-simple.yml para docker-compose.yml
     cp "$SCRIPT_DIR/docker-compose-simple.yml" "$SCRIPT_DIR/docker-compose.yml"
     
-    # Substituir as variáveis de ambiente no arquivo
+    # Criar arquivo .env no diretório raiz
+    echo -e "${C_BLUE}Criando arquivo .env no diretório raiz...${C_NC}"
+    cat > "$SCRIPT_DIR/.env" << EOL
+# Configurações do Supabase
+POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+SITE_URL=$SITE_URL
+ANON_KEY=$ANON_KEY
+SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY
+JWT_SECRET=$JWT_SECRET
+DISABLE_SIGNUP=$DISABLE_SIGNUP
+EOL
+    echo -e "${C_GREEN}Arquivo .env criado com sucesso no diretório raiz!${C_NC}"
+    
+    # Substituir as variáveis de ambiente no arquivo docker-compose.yml
     sed -i "s/\${POSTGRES_PASSWORD}/$POSTGRES_PASSWORD/g" "$SCRIPT_DIR/docker-compose.yml"
     sed -i "s|\${SITE_URL}|$SITE_URL|g" "$SCRIPT_DIR/docker-compose.yml"
     sed -i "s/\${ANON_KEY}/$ANON_KEY/g" "$SCRIPT_DIR/docker-compose.yml"
