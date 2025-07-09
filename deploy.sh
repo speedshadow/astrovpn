@@ -108,7 +108,10 @@ DASHBOARD_PASSWORD=$DASHBOARD_PASSWORD
 # Database
 ############
 
+POSTGRES_HOST=db
+POSTGRES_DB=postgres
 POSTGRES_PORT=$POSTGRES_PORT
+PGRST_DB_SCHEMAS=public,storage,graphql_public
 
 ############
 # API Proxy
@@ -129,6 +132,31 @@ API_EXTERNAL_URL=$SITE_URL
 SUPABASE_PUBLIC_URL=$SITE_URL
 
 ############
+# Email Settings
+############
+
+SMTP_ADMIN_EMAIL=admin@example.com
+SMTP_HOST=mail
+SMTP_PORT=2500
+SMTP_USER=fake_mail_user
+SMTP_PASS=fake_mail_password
+SMTP_SENDER_NAME=Supabase
+
+############
+# Auth Settings
+############
+
+ENABLE_EMAIL_SIGNUP=true
+ENABLE_EMAIL_AUTOCONFIRM=true
+ENABLE_PHONE_SIGNUP=true
+ENABLE_PHONE_AUTOCONFIRM=true
+ENABLE_ANONYMOUS_USERS=true
+MAILER_URLPATHS_CONFIRMATION="/auth/v1/verify"
+MAILER_URLPATHS_INVITE="/auth/v1/verify"
+MAILER_URLPATHS_RECOVERY="/auth/v1/verify"
+MAILER_URLPATHS_EMAIL_CHANGE="/auth/v1/verify"
+
+############
 # Studio
 ############
 
@@ -139,8 +167,23 @@ STUDIO_DEFAULT_PROJECT=Default
 # Supavisor
 ############
 
-POOLER_TENANT_ID=your-tenant-id
+POOLER_TENANT_ID=default
+POOLER_DEFAULT_POOL_SIZE=20
+POOLER_MAX_CLIENT_CONN=300
 POOLER_PROXY_PORT_TRANSACTION=6543
+POOLER_DB_POOL_SIZE=50
+
+############
+# Other Settings
+############
+
+DOCKER_SOCKET_LOCATION=/var/run/docker.sock
+SECRET_KEY_BASE=$(openssl rand -hex 32)
+VAULT_ENC_KEY=$(openssl rand -hex 32)
+IMGPROXY_ENABLE_WEBP_DETECTION=true
+FUNCTIONS_VERIFY_JWT=true
+LOGFLARE_PRIVATE_ACCESS_TOKEN=
+LOGFLARE_PUBLIC_ACCESS_TOKEN=
 EOL
 
     # Criar arquivo .env no root para o frontend
