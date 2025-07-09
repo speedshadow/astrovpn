@@ -250,10 +250,22 @@ EOL
     echo -e "${C_GREEN}Ambiente configurado com sucesso!${C_NC}"
 }
 
+# Função para instalar yq
+install_yq() {
+    if ! command -v yq >/dev/null 2>&1; then
+        echo -e "${C_BLUE}Instalando yq...${C_NC}"
+        wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        chmod +x /usr/local/bin/yq
+    fi
+}
+
 # Função para corrigir o docker-compose.yml
 fix_docker_compose() {
     echo -e "\n${C_BLUE}Corrigindo docker-compose.yml...${C_NC}"
     
+    # Instalar yq primeiro
+    install_yq
+
     # Procurar o arquivo docker-compose.yml
     local compose_file="${PROJECT_DIR}/docker-compose.yml"
     if [ ! -f "$compose_file" ]; then
@@ -268,13 +280,14 @@ fix_docker_compose() {
     # Fazer backup do arquivo
     cp "$compose_file" "${compose_file}.bak"
 
-    # Corrigir formato do depends_on para array
-    sed -i 's/depends_on: vector/depends_on: []/g' "$compose_file"
-    sed -i 's/depends_on: db/depends_on: ["db"]/g' "$compose_file"
-    
-    # Remover o serviço vector e suas dependências
-    sed -i '/vector:/,/^[^ ]/d' "$compose_file"
-    sed -i 's/- vector//g' "$compose_file"
+    # Criar arquivo temporário
+    local temp_file="${compose_file}.tmp"
+
+    # Usar yq para manipular o YAML corretamente
+    yq eval 'del(.services.vector)' "$compose_file" > "$temp_file"
+    yq eval '(.services.[] | select(has("depends_on")) | .depends_on) |= [.[]]' "$temp_file" > "${temp_file}.2"
+    mv "${temp_file}.2" "$compose_file"
+    rm -f "$temp_file"
     
     echo -e "${C_GREEN}Docker Compose corrigido com sucesso!${C_NC}"
 }
