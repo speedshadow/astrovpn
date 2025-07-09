@@ -49,7 +49,7 @@ SERVICE_KEY=$(openssl rand -hex 32)
 echo -e "\n${C_BLUE}A configurar e a iniciar o Supabase via Docker...${C_NC}"
 SUPABASE_DIR="/opt/supabase-prod"
 rm -rf $SUPABASE_DIR
-git clone --depth 1 https://github.com/supabase/docker.git $SUPABASE_DIR
+GIT_TERMINAL_PROMPT=0 git clone --depth 1 https://github.com/supabase/docker.git $SUPABASE_DIR
 cd $SUPABASE_DIR/docker
 
 cp .env.example .env
