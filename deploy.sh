@@ -58,7 +58,27 @@ git clone --depth 1 https://github.com/supabase/supabase.git $SUPABASE_DIR || { 
 cd $SUPABASE_DIR/docker || { echo -e "${C_RED}ERRO: Falha ao aceder à pasta docker${C_NC}"; exit 2; }
 cp .env.example .env || { echo -e "${C_RED}ERRO: Falha ao copiar .env.example${C_NC}"; exit 2; }
 
-# Gerar segredos automaticamente
+# Função para percent-encode (URL encode) passwords/secrets
+urlencode() {
+  local LANG=C
+  local length="${#1}"
+  for (( i = 0; i < length; i++ )); do
+    local c="${1:i:1}"
+    case $c in
+      [a-zA-Z0-9.~_-]) printf "$c" ;;
+      *) printf '%%%02X' "'${c}" ;;
+    esac
+  done
+}
+
+# Gerar segredos automaticamente e percent-encode os que vão em URLs
+DB_PASSWORD_RAW=$(openssl rand -base64 32)
+DB_PASSWORD=$(urlencode "$DB_PASSWORD_RAW")
+JWT_SECRET=$(openssl rand -base64 32)
+ANON_KEY=$(openssl rand -hex 32)
+SERVICE_KEY_RAW=$(openssl rand -hex 32)
+SERVICE_KEY=$(urlencode "$SERVICE_KEY_RAW")
+
 sed -i "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$DB_PASSWORD|g" .env
 sed -i "s|JWT_SECRET=.*|JWT_SECRET=$JWT_SECRET|g" .env
 sed -i "s|ANON_KEY=.*|ANON_KEY=$ANON_KEY|g" .env
