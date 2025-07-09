@@ -24,21 +24,48 @@ generate_jwt_secret() {
 check_docker() {
     echo -e "\n${C_BLUE}Verificando status do Docker...${C_NC}"
     
-    # Verificar se o serviço do Docker está rodando
-    if ! systemctl is-active --quiet docker; then
-        echo -e "${C_YELLOW}Docker não está rodando. Iniciando...${C_NC}"
-        systemctl start docker
-        sleep 5
+    # Habilitar o serviço do Docker para iniciar no boot
+    systemctl enable docker || true
+
+    # Parar o Docker para garantir um estado limpo
+    echo -e "${C_YELLOW}Parando Docker para garantir estado limpo...${C_NC}"
+    systemctl stop docker || true
+    sleep 2
+
+    # Remover socket antigo se existir
+    if [ -S "/var/run/docker.sock" ]; then
+        rm -f /var/run/docker.sock
     fi
 
-    # Verificar novamente
+    # Iniciar o Docker
+    echo -e "${C_YELLOW}Iniciando Docker...${C_NC}"
+    systemctl start docker
+    sleep 10
+
+    # Verificar se está rodando
     if ! systemctl is-active --quiet docker; then
         echo -e "${C_RED}Não foi possível iniciar o Docker. Tente manualmente:${C_NC}"
         echo "sudo systemctl start docker"
         exit 1
     fi
 
-    echo -e "${C_GREEN}Docker está rodando!${C_NC}"
+    # Verificar se o socket existe e tem permissões corretas
+    if [ ! -S "/var/run/docker.sock" ]; then
+        echo -e "${C_RED}Socket do Docker não encontrado!${C_NC}"
+        exit 1
+    fi
+
+    # Testar conexão com o daemon
+    if ! docker info >/dev/null 2>&1; then
+        echo -e "${C_RED}Não foi possível conectar ao daemon do Docker!${C_NC}"
+        exit 1
+    fi
+
+    echo -e "${C_GREEN}Docker está rodando e respondendo corretamente!${C_NC}"
+
+    # Limpar containers antigos
+    echo -e "${C_BLUE}Limpando containers antigos...${C_NC}"
+    docker system prune -f >/dev/null 2>&1 || true
 }
 
 # Função para verificar dependências
