@@ -20,7 +20,28 @@ generate_jwt_secret() {
     openssl rand -hex 32
 }
 
-# Verificar dependências
+# Função para verificar e iniciar o Docker
+check_docker() {
+    echo -e "\n${C_BLUE}Verificando status do Docker...${C_NC}"
+    
+    # Verificar se o serviço do Docker está rodando
+    if ! systemctl is-active --quiet docker; then
+        echo -e "${C_YELLOW}Docker não está rodando. Iniciando...${C_NC}"
+        systemctl start docker
+        sleep 5
+    fi
+
+    # Verificar novamente
+    if ! systemctl is-active --quiet docker; then
+        echo -e "${C_RED}Não foi possível iniciar o Docker. Tente manualmente:${C_NC}"
+        echo "sudo systemctl start docker"
+        exit 1
+    fi
+
+    echo -e "${C_GREEN}Docker está rodando!${C_NC}"
+}
+
+# Função para verificar dependências
 check_dependencies() {
     echo -e "\n${C_BLUE}Verificando dependências...${C_NC}"
     
@@ -41,6 +62,9 @@ check_dependencies() {
         echo "sudo apt-get install git"
         exit 1
     fi
+
+    # Verificar e iniciar o Docker
+    check_docker
 }
 
 # Função para configurar o ambiente
