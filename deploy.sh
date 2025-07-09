@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # === Supabase Self-Hosting Deployment Script ===
-# Este script configura e inicia o Supabase usando Docker Compose
+# Script único e autônomo para configurar e iniciar o Supabase usando Docker Compose
 # baseado na configuração oficial do Supabase.
 
 # Definir cores para output
@@ -81,22 +81,6 @@ rm -rf "$TMP_DIR"
 
 # Gerar o ficheiro .env
 echo -e "\n${C_BLUE}A gerar o ficheiro .env com novos segredos...${C_NC}"
-
-# Criar o script generate-env.sh diretamente
-cat > generate-env.sh << 'EOFSCRIPT'
-#!/bin/bash
-
-# Script para gerar o arquivo .env para o Supabase
-# Baseado na documentação oficial: https://supabase.com/docs/guides/self-hosting/docker
-
-# Verifica se o URL do site foi fornecido
-if [ -z "$1" ]; then
-  echo "Uso: $0 <SITE_URL>"
-  echo "Exemplo: $0 https://supabase.meudominio.com"
-  exit 1
-fi
-
-SITE_URL=$1
 
 # Função para percent-encode (URL encode) strings
 urlencode() {
@@ -215,13 +199,6 @@ echo "URL do site: ${SITE_URL}"
 echo "Credenciais do Dashboard:"
 echo "  Usuário: ${DASHBOARD_USERNAME}"
 echo "  Senha: ${DASHBOARD_PASSWORD}"
-EOFSCRIPT
-
-# Tornar o script executável
-chmod +x generate-env.sh
-
-# Executar o script para gerar o .env
-./generate-env.sh "$SITE_URL"
 
 # Iniciar os serviços
 echo -e "\n${C_BLUE}A iniciar todos os serviços do Supabase com Docker Compose...${C_NC}"
