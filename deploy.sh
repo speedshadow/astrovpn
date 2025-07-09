@@ -128,56 +128,27 @@ fix_docker_compose_files() {
             sed -i '/docker.sock/s/^/#/' "$compose_file"
         fi
         
-        # Desativar serviços problemáticos se solicitado
-        if [ "$DISABLE_VECTOR" = true ]; then
-            echo -e "${C_YELLOW}Desativando o serviço Vector em $compose_file...${C_NC}"
-            
-            # Abordagem mais simples e robusta: usar sed para comentar o serviço vector
-            if grep -q "vector:" "$compose_file"; then
-                # Comentar a definição do serviço vector
-                sed -i '/vector:/s/^/#/' "$compose_file"
-                
-                # Comentar todas as linhas indentadas que seguem a definição do serviço
-                sed -i '/^[[:space:]]\+image: supabase\/vector/s/^/#/' "$compose_file"
-                sed -i '/^[[:space:]]\+restart:/s/^/#/' "$compose_file"
-                sed -i '/^[[:space:]]\+volumes:/s/^/#/' "$compose_file"
-                sed -i '/^[[:space:]]\+- \.\//s/^/#/' "$compose_file"
-                sed -i '/^[[:space:]]\+- \/var\/run/s/^/#/' "$compose_file"
-                sed -i '/^[[:space:]]\+healthcheck:/s/^/#/' "$compose_file"
-                sed -i '/^[[:space:]]\+test:/s/^/#/' "$compose_file"
-                sed -i '/^[[:space:]]\+- CMD/s/^/#/' "$compose_file"
-                sed -i '/^[[:space:]]\+interval:/s/^/#/' "$compose_file"
-                sed -i '/^[[:space:]]\+timeout:/s/^/#/' "$compose_file"
-                sed -i '/^[[:space:]]\+retries:/s/^/#/' "$compose_file"
-                sed -i '/^[[:space:]]\+start_period:/s/^/#/' "$compose_file"
-                sed -i '/^[[:space:]]\+environment:/s/^/#/' "$compose_file"
-                sed -i '/^[[:space:]]\+- VECTOR_/s/^/#/' "$compose_file"
-                sed -i '/^[[:space:]]\+command:/s/^/#/' "$compose_file"
-                sed -i '/^[[:space:]]\+- --config/s/^/#/' "$compose_file"
-                
-                # Remover dependências do vector em outros serviços
-                sed -i 's|\[vector,|\[|g' "$compose_file"
-                sed -i 's|, vector\]|\]|g' "$compose_file"
-                sed -i 's|\[vector\]|\[\]|g' "$compose_file"
-                sed -i 's|vector,||g' "$compose_file"
-                sed -i 's|, vector||g' "$compose_file"
-                
-                echo -e "${C_GREEN}Serviço Vector comentado com sucesso!${C_NC}"
-            else
-                echo -e "${C_YELLOW}Serviço Vector não encontrado em $compose_file.${C_NC}"
-            fi
-            
-            # Solução radical: remover completamente o container vector do docker-compose up
-            echo -e "${C_YELLOW}Adicionando comando para ignorar o Vector durante a inicialização...${C_NC}"
-            DOCKER_COMPOSE_CMD="docker compose up -d"
-            DOCKER_COMPOSE_IGNORE_VECTOR="docker compose up -d --scale vector=0"
-            
-            # Substituir o comando docker compose no script
-            sed -i "s|$DOCKER_COMPOSE_CMD|$DOCKER_COMPOSE_IGNORE_VECTOR|g" "$SCRIPT_DIR/deploy.sh"
-        fi
-        
         echo -e "${C_GREEN}Arquivo $compose_file corrigido!${C_NC}"
     done
+    
+    # Desativar serviços problemáticos se solicitado usando docker-compose.override.yml
+    if [ "$DISABLE_VECTOR" = true ]; then
+        echo -e "${C_YELLOW}Criando arquivo docker-compose.override.yml para desativar o Vector...${C_NC}"
+        
+        # Criar um arquivo docker-compose.override.yml para desativar o Vector
+        cat > "$SCRIPT_DIR/docker-compose.override.yml" << EOL
+version: '3.8'
+services:
+  vector:
+    image: alpine:3.16
+    command: sh -c "echo 'Vector service disabled' && sleep infinity"
+    restart: "no"
+    deploy:
+      replicas: 0
+EOL
+        
+        echo -e "${C_GREEN}Arquivo docker-compose.override.yml criado com sucesso!${C_NC}"
+    fi
 }
 
 # Executar a função de correção
