@@ -7,13 +7,13 @@ services:
     ports:
       - 8000:3000
     environment:
-      - STUDIO_PG_META_URL=http://meta:8080
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - DEFAULT_ORGANIZATION_NAME=AstroVPN
-      - SUPABASE_URL=http://kong:8000
-      - SUPABASE_PUBLIC_URL=${SITE_URL}
-      - SUPABASE_ANON_KEY=${ANON_KEY}
-      - SUPABASE_SERVICE_KEY=${SERVICE_ROLE_KEY}
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      DEFAULT_ORGANIZATION_NAME: AstroVPN
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: ${SITE_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
     env_file:
       - .env
 
@@ -23,10 +23,10 @@ services:
     ports:
       - 8000:8000
     environment:
-      - KONG_DATABASE=off
-      - KONG_DECLARATIVE_CONFIG=/var/lib/kong/kong.yml
-      - KONG_DNS_ORDER=LAST,A,CNAME
-      - KONG_PLUGINS=request-transformer,cors,key-auth,acl
+      KONG_DATABASE: "off"
+      KONG_DECLARATIVE_CONFIG: /var/lib/kong/kong.yml
+      KONG_DNS_ORDER: LAST,A,CNAME
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl
     volumes:
       - ./volumes/api:/var/lib/kong
     env_file:
@@ -36,20 +36,20 @@ services:
     image: supabase/gotrue:latest
     restart: unless-stopped
     environment:
-      - GOTRUE_API_HOST=0.0.0.0
-      - GOTRUE_API_PORT=9999
-      - API_EXTERNAL_URL=${SITE_URL}/auth
-      - GOTRUE_DB_DRIVER=postgres
-      - GOTRUE_DB_HOST=db
-      - GOTRUE_DB_PORT=5432
-      - GOTRUE_DB_NAME=postgres
-      - GOTRUE_DB_USER=supabase_auth_admin
-      - GOTRUE_DB_PASSWORD=${POSTGRES_PASSWORD}
-      - GOTRUE_SITE_URL=${SITE_URL}
-      - GOTRUE_JWT_SECRET=${JWT_SECRET}
-      - GOTRUE_JWT_EXP=3600
-      - GOTRUE_JWT_DEFAULT_GROUP_NAME=authenticated
-      - GOTRUE_DISABLE_SIGNUP=${DISABLE_SIGNUP}
+      GOTRUE_API_HOST: 0.0.0.0
+      GOTRUE_API_PORT: 9999
+      API_EXTERNAL_URL: ${SITE_URL}/auth
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_HOST: db
+      GOTRUE_DB_PORT: 5432
+      GOTRUE_DB_NAME: postgres
+      GOTRUE_DB_USER: supabase_auth_admin
+      GOTRUE_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      GOTRUE_SITE_URL: ${SITE_URL}
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_EXP: 3600
+      GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
+      GOTRUE_DISABLE_SIGNUP: ${DISABLE_SIGNUP}
     env_file:
       - .env
 
@@ -57,11 +57,11 @@ services:
     image: postgrest/postgrest:latest
     restart: unless-stopped
     environment:
-      - PGRST_DB_URI=postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
-      - PGRST_DB_SCHEMA=public,storage
-      - PGRST_DB_ANON_ROLE=anon
-      - PGRST_JWT_SECRET=${JWT_SECRET}
-      - PGRST_DB_USE_LEGACY_GUCS=false
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@db:5432/postgres
+      PGRST_DB_SCHEMA: public,storage
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      PGRST_DB_USE_LEGACY_GUCS: "false"
     env_file:
       - .env
 
@@ -69,17 +69,17 @@ services:
     image: supabase/storage-api:latest
     restart: unless-stopped
     environment:
-      - ANON_KEY=${ANON_KEY}
-      - SERVICE_KEY=${SERVICE_ROLE_KEY}
-      - POSTGREST_URL=http://rest:3000
-      - PGRST_JWT_SECRET=${JWT_SECRET}
-      - DATABASE_URL=postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
-      - FILE_SIZE_LIMIT=52428800
-      - STORAGE_BACKEND=file
-      - FILE_STORAGE_BACKEND_PATH=/var/lib/storage
-      - TENANT_ID=stub
-      - REGION=stub
-      - GLOBAL_S3_BUCKET=stub
+      ANON_KEY: ${ANON_KEY}
+      SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://rest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@db:5432/postgres
+      FILE_SIZE_LIMIT: 52428800
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: stub
+      REGION: stub
+      GLOBAL_S3_BUCKET: stub
     volumes:
       - ./volumes/storage:/var/lib/storage
     env_file:
@@ -89,12 +89,12 @@ services:
     image: supabase/postgres-meta:latest
     restart: unless-stopped
     environment:
-      - PG_META_PORT=8080
-      - PG_META_DB_HOST=db
-      - PG_META_DB_PORT=5432
-      - PG_META_DB_NAME=postgres
-      - PG_META_DB_USER=supabase_admin
-      - PG_META_DB_PASSWORD=${POSTGRES_PASSWORD}
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: db
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: postgres
+      PG_META_DB_USER: supabase_admin
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
     env_file:
       - .env
 
@@ -104,9 +104,9 @@ services:
     ports:
       - 5432:5432
     environment:
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
-      - JWT_SECRET=${JWT_SECRET}
-      - POSTGRES_DB=postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      POSTGRES_DB: postgres
     volumes:
       - ./volumes/db/data:/var/lib/postgresql/data
       - ./volumes/db/init:/docker-entrypoint-initdb.d
@@ -117,18 +117,18 @@ services:
     image: supabase/realtime:latest
     restart: unless-stopped
     environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_NAME=postgres
-      - DB_USER=supabase_admin
-      - DB_PASSWORD=${POSTGRES_PASSWORD}
-      - PORT=4000
-      - JWT_SECRET=${JWT_SECRET}
-      - REPLICATION_MODE=RLS
-      - REPLICATION_POLL_INTERVAL=100
-      - SECURE_CHANNELS=true
-      - SLOT_NAME=supabase_realtime
-      - TEMPORARY_SLOT=true
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: postgres
+      DB_USER: supabase_admin
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      PORT: 4000
+      JWT_SECRET: ${JWT_SECRET}
+      REPLICATION_MODE: RLS
+      REPLICATION_POLL_INTERVAL: 100
+      SECURE_CHANNELS: "true"
+      SLOT_NAME: supabase_realtime
+      TEMPORARY_SLOT: "true"
     env_file:
       - .env
 
@@ -136,9 +136,9 @@ services:
     image: darthsim/imgproxy:latest
     restart: unless-stopped
     environment:
-      - IMGPROXY_BIND=:5001
-      - IMGPROXY_LOCAL_FILESYSTEM_ROOT=/
-      - IMGPROXY_USE_ETAG=true
+      IMGPROXY_BIND: :5001
+      IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
+      IMGPROXY_USE_ETAG: "true"
     volumes:
       - ./volumes/storage:/var/lib/storage
     env_file:
@@ -148,11 +148,11 @@ services:
     image: supabase/edge-runtime:latest
     restart: unless-stopped
     environment:
-      - JWT_SECRET=${JWT_SECRET}
-      - SUPABASE_URL=http://kong:8000
-      - SUPABASE_ANON_KEY=${ANON_KEY}
-      - SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}
-      - SUPABASE_DB_URL=postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/postgres
+      JWT_SECRET: ${JWT_SECRET}
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@db:5432/postgres
     volumes:
       - ./volumes/functions:/home/deno/functions
     env_file:
@@ -162,12 +162,12 @@ services:
     image: supabase/postgres-meta:latest
     restart: unless-stopped
     environment:
-      - PG_META_PORT=8080
-      - PG_META_DB_HOST=db
-      - PG_META_DB_PORT=5432
-      - PG_META_DB_NAME=postgres
-      - PG_META_DB_USER=supabase_admin
-      - PG_META_DB_PASSWORD=${POSTGRES_PASSWORD}
+      PG_META_PORT: 8080
+      PG_META_DB_HOST: db
+      PG_META_DB_PORT: 5432
+      PG_META_DB_NAME: postgres
+      PG_META_DB_USER: supabase_admin
+      PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
     env_file:
       - .env
 
