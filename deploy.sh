@@ -37,10 +37,14 @@ if [[ "$HAS_DOMAIN" =~ ^[Ss]$ ]]; then
 else
   DOMAIN_OR_IP="http://$(curl -s ifconfig.me):8000"
   echo "AVISO: O Supabase ficará exposto no IP público sem HTTPS!"
-DB_PASSWORD=$(openssl rand -base64 32)
-JWT_SECRET=$(openssl rand -base64 32)
-ANON_KEY=$(openssl rand -hex 32)
-SERVICE_KEY=$(openssl rand -hex 32)
+fi
+
+./generate-env.sh "$DOMAIN_OR_IP"
+
+docker compose down -v || true
+docker compose up -d --build
+
+echo "Deploy concluído. Aceda em: $DOMAIN_OR_IP"
 
 # --- 4. Configurar e Iniciar o Supabase (Método Oficial 2024+) ---
 echo -e "\n${C_BLUE}A configurar e a iniciar o Supabase via Docker (método oficial)...${C_NC}"
