@@ -122,10 +122,3 @@ DASHBOARD_PASSWORD=${DASHBOARD_PASSWORD}
 
 # URL do site (usada para redirecionamentos e emails)
 SITE_URL=${SITE_URL}
-EOF
-
-echo "Arquivo .env gerado com sucesso!"
-echo "URL do site: ${SITE_URL}"
-echo "Credenciais do Dashboard:"
-echo "  Usuário: ${DASHBOARD_USERNAME}"
-echo "  Senha: ${DASHBOARD_PASSWORD}"
