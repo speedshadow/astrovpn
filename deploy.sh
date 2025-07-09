@@ -79,9 +79,9 @@ ALL_OK=1
 CRITICAL_CONTAINERS=(supabase-db supabase-rest supabase-auth supabase-storage supabase-kong)
 
 for cname in "${CRITICAL_CONTAINERS[@]}"; do
-  STATUS=$(docker inspect -f '{{.State.Status}}' $cname 2>/dev/null)
-  HEALTH=$(docker inspect -f '{{.State.Health.Status}}' $cname 2>/dev/null)
-  if [[ "$STATUS" != "running" ]] || [[ "$HEALTH" == "unhealthy" ]]; then
+  STATUS=$(docker inspect -f '{{.State.Status}}' $cname 2>/dev/null || echo "unknown")
+  HEALTH=$(docker inspect -f '{{.State.Health.Status}}' $cname 2>/dev/null || echo "unknown")
+  if [[ "$STATUS" != "running" ]] || ([[ "$HEALTH" != "healthy" ]] && [[ "$HEALTH" != "unknown" ]]); then
     echo -e "${C_RED}Container $cname está $STATUS/$HEALTH. Tentando correção automática...${C_NC}"
     if [[ "$cname" == "supabase-db" ]]; then
       echo -e "${C_YELLOW}Corrigindo permissões da base de dados...${C_NC}"
@@ -89,9 +89,9 @@ for cname in "${CRITICAL_CONTAINERS[@]}"; do
     fi
     docker restart $cname
     sleep 5
-    STATUS2=$(docker inspect -f '{{.State.Status}}' $cname 2>/dev/null)
-    HEALTH2=$(docker inspect -f '{{.State.Health.Status}}' $cname 2>/dev/null)
-    if [[ "$STATUS2" != "running" ]] || [[ "$HEALTH2" == "unhealthy" ]]; then
+    STATUS2=$(docker inspect -f '{{.State.Status}}' $cname 2>/dev/null || echo "unknown")
+    HEALTH2=$(docker inspect -f '{{.State.Health.Status}}' $cname 2>/dev/null || echo "unknown")
+    if [[ "$STATUS2" != "running" ]] || ([[ "$HEALTH2" != "healthy" ]] && [[ "$HEALTH2" != "unknown" ]]); then
       echo -e "${C_RED}Container $cname continua com problemas ($STATUS2/$HEALTH2). Últimos logs:${C_NC}"
       docker logs --tail=20 $cname
       ALL_OK=0
