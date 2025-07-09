@@ -71,15 +71,31 @@ urlencode() {
   done
 }
 
-# Gerar segredos automaticamente e percent-encode os que vão em URLs
-DB_PASSWORD_RAW=$(openssl rand -base64 32)
-DB_PASSWORD=$(urlencode "$DB_PASSWORD_RAW")
+# Gerar segredos automaticamente
 JWT_SECRET=$(openssl rand -base64 32)
 ANON_KEY=$(openssl rand -hex 32)
 SERVICE_KEY_RAW=$(openssl rand -hex 32)
 SERVICE_KEY=$(urlencode "$SERVICE_KEY_RAW")
 
-sed -i "s|POSTGRES_PASSWORD=.*|POSTGRES_PASSWORD=$DB_PASSWORD|g" .env
+# Substituir todas as variáveis *_PASSWORD do .env por passwords seguras e percent-encoded
+for var in $(grep -o '^[A-Z0-9_]*_PASSWORD' .env | sort | uniq); do
+  RAW=$(openssl rand -base64 32)
+  ENC=$(urlencode "$RAW")
+  sed -i "s|^$var=.*|$var=$ENC|g" .env
+  if [[ "$var" == "POSTGRES_PASSWORD" ]]; then
+    POSTGRES_PASSWORD_RAW="$RAW"
+    POSTGRES_PASSWORD="$ENC"
+  fi
+  if [[ "$var" == "AUTHENTICATOR_PASSWORD" ]]; then
+    AUTHENTICATOR_PASSWORD_RAW="$RAW"
+    AUTHENTICATOR_PASSWORD="$ENC"
+  fi
+  # Adiciona mais casos se precisares das passwords em variáveis para outros usos
+  # Exemplo: exportar para outros serviços
+  # ...
+done
+
+# Substituir as outras chaves normalmente
 sed -i "s|JWT_SECRET=.*|JWT_SECRET=$JWT_SECRET|g" .env
 sed -i "s|ANON_KEY=.*|ANON_KEY=$ANON_KEY|g" .env
 sed -i "s|SERVICE_ROLE_KEY=.*|SERVICE_ROLE_KEY=$SERVICE_KEY|g" .env
