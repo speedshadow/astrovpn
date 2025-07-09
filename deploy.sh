@@ -250,9 +250,9 @@ EOL
     echo -e "${C_GREEN}Ambiente configurado com sucesso!${C_NC}"
 }
 
-# Função para desativar o Vector
-disable_vector() {
-    echo -e "\n${C_BLUE}Desativando serviço Vector...${C_NC}"
+# Função para corrigir o docker-compose.yml
+fix_docker_compose() {
+    echo -e "\n${C_BLUE}Corrigindo docker-compose.yml...${C_NC}"
     
     # Procurar o arquivo docker-compose.yml
     local compose_file="${PROJECT_DIR}/docker-compose.yml"
@@ -268,11 +268,32 @@ disable_vector() {
     # Fazer backup do arquivo
     cp "$compose_file" "${compose_file}.bak"
 
+    # Corrigir formato do depends_on para array
+    sed -i 's/depends_on: vector/depends_on: []/g' "$compose_file"
+    sed -i 's/depends_on: db/depends_on: ["db"]/g' "$compose_file"
+    
     # Remover o serviço vector e suas dependências
     sed -i '/vector:/,/^[^ ]/d' "$compose_file"
     sed -i 's/- vector//g' "$compose_file"
     
-    echo -e "${C_GREEN}Vector desativado com sucesso!${C_NC}"
+    echo -e "${C_GREEN}Docker Compose corrigido com sucesso!${C_NC}"
+}
+
+# Função para verificar portas
+check_ports() {
+    echo -e "\n${C_BLUE}Verificando portas...${C_NC}"
+
+    # Verificar se a porta 8000 está livre
+    if lsof -i :8000 >/dev/null 2>&1; then
+        echo -e "${C_RED}Porta 8000 já está em uso!${C_NC}"
+        exit 1
+    fi
+
+    # Tentar liberar a porta 8000 no firewall
+    if command -v ufw >/dev/null 2>&1; then
+        echo -e "${C_YELLOW}Liberando porta 8000 no firewall...${C_NC}"
+        ufw allow 8000/tcp || true
+    fi
 }
 
 # Função para iniciar os serviços
@@ -281,8 +302,11 @@ start_services() {
     
     cd "$PROJECT_DIR"
 
-    # Desativar Vector primeiro
-    disable_vector
+    # Corrigir docker-compose.yml
+    fix_docker_compose
+
+    # Verificar portas
+    check_ports
 
     echo -e "\n${C_BLUE}Baixando imagens mais recentes...${C_NC}"
     docker compose pull
@@ -294,14 +318,29 @@ start_services() {
     echo -e "\n${C_BLUE}Aguardando serviços iniciarem...${C_NC}"
     sleep 30
 
-    # Verificar logs se houver erro
+    # Verificar status dos containers
     if docker compose ps | grep -q "unhealthy\|exited"; then
         echo -e "${C_RED}Alguns serviços não iniciaram corretamente:${C_NC}"
         docker compose ps
-        echo -e "\n${C_YELLOW}Logs dos serviços com problema:${C_NC}"
-        docker compose logs --tail 50 vector
+        docker compose logs --tail 50
         exit 1
     fi
+
+    # Verificar se o serviço está acessível
+    echo -e "\n${C_BLUE}Verificando acesso ao serviço...${C_NC}"
+    for i in {1..6}; do
+        if curl -s http://localhost:8000 >/dev/null; then
+            echo -e "${C_GREEN}Serviço está respondendo na porta 8000!${C_NC}"
+            break
+        fi
+        if [ $i -eq 6 ]; then
+            echo -e "${C_RED}Serviço não está respondendo na porta 8000!${C_NC}"
+            docker compose logs --tail 50
+            exit 1
+        fi
+        echo -e "${C_YELLOW}Tentativa $i: Aguardando serviço responder...${C_NC}"
+        sleep 10
+    done
 
     echo -e "${C_GREEN}Todos os serviços iniciados com sucesso!${C_NC}"
 }
