@@ -240,32 +240,6 @@ else
 fi
 
 echo -e "\n${C_GREEN}Deploy do Supabase concluído!${C_NC}"
-
-# Instalar PM2
-npm install -g pm2
-
-# Usar o código já presente na pasta atual
-APP_DIR="$(pwd)"
-cd $APP_DIR
-
-# --- 6. Configuração Específica (Domínio vs IP) ---
-if [[ "$HAS_DOMAIN" =~ ^[Ss]$ ]]; then
-    # --- Configuração com Domínio (HTTPS) ---
-    read -p "Qual é o seu nome de domínio (ex: astrovpn.com)? " DOMAIN_NAME
-    read -p "Qual é o seu email (para o certificado SSL)? " LETSENCRYPT_EMAIL
-
-    echo -e "\n${C_BLUE}A criar o ficheiro .env para o domínio...${C_NC}"
-    cat << EOF > .env
-PUBLIC_SUPABASE_URL=http://localhost:8000
-PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY
-EOF
-
-    npm install
-    npm run build
-
-    echo -e "\n${C_BLUE}A instalar e configurar o Caddy...${C_NC}"
-    apt-get install -y debian-keyring debian-archive-keyring apt-transport-https
-    curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg
     curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list
     apt-get update
     apt-get install -y caddy
