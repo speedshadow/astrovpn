@@ -65,6 +65,43 @@ fi
 echo -e "\n${C_BLUE}A iniciar os contentores do Supabase...${C_NC}"
 docker compose up -d
 
+# --- 5. Diagnóstico automático dos containers ---
+echo -e "\n${C_BLUE}A verificar o estado dos containers Supabase...${C_NC}"
+ALL_OK=1
+CRITICAL_CONTAINERS=(supabase-db supabase-rest supabase-auth supabase-storage supabase-kong)
+
+for cname in "${CRITICAL_CONTAINERS[@]}"; do
+  STATUS=$(docker inspect -f '{{.State.Status}}' $cname 2>/dev/null)
+  HEALTH=$(docker inspect -f '{{.State.Health.Status}}' $cname 2>/dev/null)
+  if [[ "$STATUS" != "running" ]] || [[ "$HEALTH" == "unhealthy" ]]; then
+    echo -e "${C_RED}Container $cname está $STATUS/$HEALTH. Tentando correção automática...${C_NC}"
+    if [[ "$cname" == "supabase-db" ]]; then
+      echo -e "${C_YELLOW}Corrigindo permissões da base de dados...${C_NC}"
+      sudo chown -R 70:70 $SUPABASE_DIR/volumes/db 2>/dev/null || true
+    fi
+    docker restart $cname
+    sleep 5
+    STATUS2=$(docker inspect -f '{{.State.Status}}' $cname 2>/dev/null)
+    HEALTH2=$(docker inspect -f '{{.State.Health.Status}}' $cname 2>/dev/null)
+    if [[ "$STATUS2" != "running" ]] || [[ "$HEALTH2" == "unhealthy" ]]; then
+      echo -e "${C_RED}Container $cname continua com problemas ($STATUS2/$HEALTH2). Últimos logs:${C_NC}"
+      docker logs --tail=20 $cname
+      ALL_OK=0
+    else
+      echo -e "${C_GREEN}Container $cname recuperado!${C_NC}"
+    fi
+  else
+    echo -e "${C_GREEN}Container $cname está saudável (${STATUS}/${HEALTH})${C_NC}"
+  fi
+done
+
+if [[ $ALL_OK -eq 0 ]]; then
+  echo -e "\n${C_RED}Erro: Um ou mais serviços críticos do Supabase não iniciaram corretamente. Veja os logs acima e verifique memória, permissões e configuração do .env.${C_NC}"
+  exit 1
+else
+  echo -e "\n${C_GREEN}Todos os serviços críticos do Supabase estão a correr!${C_NC}"
+fi
+
 # --- 5. Configurar Aplicação Astro ---
 echo -e "\n${C_BLUE}A configurar a aplicação Astro...${C_NC}"
 
