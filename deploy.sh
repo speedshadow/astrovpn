@@ -53,14 +53,10 @@ rm -rf $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao remover $SUPABASE_DIR$
 mkdir -p $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao criar $SUPABASE_DIR${C_NC}"; exit 2; }
 cd $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao aceder a $SUPABASE_DIR${C_NC}"; exit 2; }
 
-# Baixar docker-compose.yml e .env.example da fonte oficial
-wget https://raw.githubusercontent.com/supabase/supabase/develop/docker/docker-compose.yml || { echo -e "${C_RED}ERRO: Falha ao baixar docker-compose.yml${C_NC}"; exit 2; }
-wget https://raw.githubusercontent.com/supabase/supabase/develop/docker/.env.example -O .env || { echo -e "${C_RED}ERRO: Falha ao baixar .env.example${C_NC}"; exit 2; }
-
-if [ ! -f docker-compose.yml ] || [ ! -f .env ]; then
-  echo -e "${C_RED}ERRO: Ficheiros docker-compose.yml ou .env não encontrados após download!${C_NC}"
-  exit 2
-fi
+# Obter ficheiros do Supabase via git clone (método oficial 2025)
+git clone --depth 1 https://github.com/supabase/supabase.git $SUPABASE_DIR || { echo -e "${C_RED}ERRO: Falha ao clonar o repositório Supabase${C_NC}"; exit 2; }
+cd $SUPABASE_DIR/docker || { echo -e "${C_RED}ERRO: Falha ao aceder à pasta docker${C_NC}"; exit 2; }
+cp .env.example .env || { echo -e "${C_RED}ERRO: Falha ao copiar .env.example${C_NC}"; exit 2; }
 
 # Gerar segredos automaticamente
 sed -i "s/POSTGRES_PASSWORD=.*/POSTGRES_PASSWORD=$DB_PASSWORD/g" .env
