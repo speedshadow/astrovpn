@@ -24,23 +24,26 @@ generate_jwt_secret() {
 check_docker() {
     echo -e "\n${C_BLUE}Verificando status do Docker...${C_NC}"
     
-    # Habilitar o serviço do Docker para iniciar no boot
-    systemctl enable docker || true
+    # Parar e desabilitar docker.socket
+    echo -e "${C_YELLOW}Parando docker.socket...${C_NC}"
+    systemctl stop docker.socket
+    systemctl disable docker.socket
 
-    # Parar o Docker para garantir um estado limpo
-    echo -e "${C_YELLOW}Parando Docker para garantir estado limpo...${C_NC}"
-    systemctl stop docker || true
-    sleep 2
-
+    # Parar o serviço docker
+    echo -e "${C_YELLOW}Parando serviço docker...${C_NC}"
+    systemctl stop docker.service
+    
     # Remover socket antigo se existir
     if [ -S "/var/run/docker.sock" ]; then
+        echo -e "${C_YELLOW}Removendo socket antigo...${C_NC}"
         rm -f /var/run/docker.sock
     fi
 
-    # Iniciar o Docker
-    echo -e "${C_YELLOW}Iniciando Docker...${C_NC}"
-    systemctl start docker
-    sleep 10
+    # Habilitar e iniciar o Docker
+    echo -e "${C_YELLOW}Configurando Docker...${C_NC}"
+    systemctl enable docker.service
+    systemctl start docker.service
+    sleep 15
 
     # Verificar se está rodando
     if ! systemctl is-active --quiet docker; then
