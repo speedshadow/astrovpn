@@ -1,0 +1,94 @@
+---
+import { Image } from 'astro:assets';
+import Layout from '@/layouts/Layout.astro';
+import { SocialShare } from '@/components/SocialShare';
+import { CommentSection } from '@/components/CommentSection';
+import { AffiliateCTA } from '@/components/AffiliateCTA';
+import { format } from 'date-fns';
+
+const { supabase } = Astro.locals;
+const url = Astro.url;
+const { slug } = Astro.params;
+
+if (!slug) {
+  return new Response("Post slug is required", { status: 400 });
+}
+
+// Fetch the specific blog post and its category
+const { data: post, error } = await supabase
+  .from('blog_posts')
+  .select(`
+    id,
+    title,
+    content,
+    featured_image_url,
+    published_at,
+    allow_comments,
+    show_cta,
+    blog_categories ( name )
+  `)
+  .eq('slug', slug)
+  .not('published_at', 'is', null)
+  .single();
+
+if (error || !post) {
+  console.error('Error fetching post:', error?.message);
+  return Astro.redirect('/404');
+}
+
+
+// TODO: Implement author fetching via a profiles table.
+const authorName = 'AstroVPN Team';
+---
+
+<Layout title={post.title}>
+  <SocialShare client:load url={url.toString()} title={post.title} />
+  <!-- Page Header -->
+    <div class="container mx-auto px-4 pt-12 md:pt-20">
+      <div class="max-w-3xl mx-auto">
+        <header class="text-center mb-10 md:mb-14">
+          {post.blog_categories && (
+            <p class="text-base font-semibold text-primary-600 dark:text-primary-400 mb-4 uppercase tracking-wider">{post.blog_categories.name}</p>
+          )}
+          <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight text-slate-900 dark:text-slate-50 mb-4">{post.title}</h1>
+          <div class="flex items-center justify-center gap-x-6 text-sm text-slate-500 dark:text-slate-400">
+            <span>By {authorName}</span>
+            <time datetime={post.published_at}>{format(new Date(post.published_at), 'MMMM d, yyyy')}</time>
+          </div>
+        </header>
+
+        {post.featured_image_url && (
+          <div class="mb-10 md:mb-14">
+            <Image src={post.featured_image_url} alt={`Featured image for ${post.title}`} class="w-full h-auto rounded-xl shadow-lg" width={1200} height={675} />
+          </div>
+        )}
+      </div>
+    </div>
+
+    <!-- Post Content -->
+    <article class="prose prose-lg prose-slate dark:prose-invert mx-auto px-4">
+      <Fragment set:html={post.content} />
+    </article>
+
+    <!-- Footer Section (CTA, Comments) -->
+    <div class="container mx-auto px-4 pb-12 md:pb-20">
+      <div class="max-w-3xl mx-auto">
+        <hr class="my-12 border-slate-200 dark:border-slate-800" />
+        {post.show_cta && (
+            <div class="mt-16">
+                <AffiliateCTA client:visible />
+            </div>
+        )}
+        {post.allow_comments && (
+          <div class="mt-12">
+            <CommentSection postId={post.id} client:load />
+          </div>
+        )}
+      </div>
+    </div>
+
+
+
+
+
+</Layout>

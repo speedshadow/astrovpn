@@ -1,0 +1,173 @@
+---
+import { ParticleBackground } from '@/components/animations/ParticleBackground';
+import { Header } from '@/components/layout/Header';
+import { ViewTransitions } from 'astro:transitions';
+import { createServerClient } from '@supabase/ssr';
+import { SEO } from 'astro-seo';
+import '../styles/global.css';
+import '../styles/fonts.css';
+
+const supabase = createServerClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  {
+    cookies: {
+      get: (name) => Astro.cookies.get(name)?.value ?? '',
+      set: (name, value, options) => {
+        Astro.cookies.set(name, value, options);
+      },
+      remove: (name, options) => {
+        Astro.cookies.delete(name, options);
+      }
+    },
+  }
+);
+
+// Fetch settings from database
+const { data: settings } = await supabase
+  .from('site_settings')
+  .select('*')
+  .eq('id', 1)
+  .single();
+
+// Fetch all VPNs for the navigation menu
+const { data: vpnNavLinks, error: vpnError } = await supabase
+  .from('vpns')
+  .select('name, slug')
+  .order('name', { ascending: true });
+
+if (vpnError) {
+  console.error('Error fetching VPNs for navigation:', vpnError);
+}
+
+interface Props {
+  title: string;
+  description?: string;
+  image?: string;
+}
+const { title, description, image } = Astro.props;
+
+// --- SEO Configuration ---
+const siteTitle = settings?.site_title || 'AstroVPN';
+const siteTagline = settings?.site_tagline;
+
+let finalTitle;
+if (Astro.url.pathname === '/') {
+  finalTitle = siteTagline ? `${siteTitle} - ${siteTagline}` : siteTitle;
+} else if (title) {
+  finalTitle = `${title} | ${siteTitle}`;
+} else {
+  finalTitle = siteTitle;
+}
+
+const siteUrl = settings?.site_url || Astro.url.origin;
+const finalDescription = description || settings?.meta_description || 'Find the best VPN for your needs. In-depth reviews, deals, and comparisons.';
+const finalImage = image || settings?.social_preview_image_url || '/social-preview.svg';
+const favicon = settings?.favicon_url || '/favicon.svg';
+const author = settings?.meta_author || 'AstroVPN Team';
+const keywords = settings?.meta_keywords || 'vpn, security, privacy, review';
+const googleAnalyticsId = settings?.google_analytics_id || '';
+const twitterHandle = settings?.twitter_handle ? `@${settings.twitter_handle.replace('@', '')}` : undefined;
+
+const canonicalURL = new URL(Astro.url.pathname, siteUrl).href;
+const imageURL = new URL(finalImage, Astro.url.origin).href;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <script is:inline>
+      function applyThemePolicy() {
+        const path = window.location.pathname;
+        const isBlogPage = path.startsWith('/blog');
+        document.documentElement.classList.remove('dark');
+        if (!isBlogPage) {
+          document.documentElement.classList.add('dark');
+        }
+      }
+      applyThemePolicy();
+      window.applyThemePolicy = applyThemePolicy;
+    </script>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <link rel="icon" type="image/svg+xml" href={favicon} />
+    <meta name="generator" content={Astro.generator} />
+
+    <ViewTransitions />
+
+    <SEO
+      title={finalTitle}
+      description={finalDescription}
+      canonical={canonicalURL}
+      openGraph={{
+        basic: {
+          title: finalTitle,
+          type: 'website',
+          image: imageURL,
+          url: canonicalURL,
+        },
+        image: {
+          alt: `${title || 'AstroVPN'} social preview`,
+        },
+        siteName: siteTitle,
+      }}
+      twitter={{
+        card: 'summary_large_image',
+        site: twitterHandle,
+        creator: twitterHandle,
+        title: finalTitle,
+        description: finalDescription,
+        image: imageURL,
+        imageAlt: `${title || 'AstroVPN'} social preview`,
+      }}
+      extend={{
+        meta: [
+          { name: 'keywords', content: keywords },
+          { name: 'author', content: author },
+        ],
+      }}
+    />
+
+    <!-- PWA & Theme -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#111827" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+
+
+    {/* Google Analytics */}
+    {googleAnalyticsId && (
+      <Fragment set:html={`
+        <script async src="https://www.googletagmanager.com/gtag/js?id=${googleAnalyticsId}"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', '${googleAnalyticsId}');
+        </script>
+      `} />
+    )}
+  </head>
+  <body class="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 antialiased">
+    <ParticleBackground client:idle />
+    <Header client:idle vpnLinks={vpnNavLinks || []} />
+    <main class="z-10">
+      <slot />
+    </main>
+    <script>
+      import { trackPageView } from '../lib/analytics-tracker';
+
+      function handlePageTransition() {
+        trackPageView();
+        if (window.applyThemePolicy) {
+          window.applyThemePolicy();
+        }
+      }
+
+      document.addEventListener('astro:page-load', trackPageView, { once: true });
+      document.addEventListener('astro:after-swap', handlePageTransition);
+    </script>
+  </body>
+</html>

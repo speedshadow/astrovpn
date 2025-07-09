@@ -1,0 +1,22 @@
+--- 
+import Layout from '../../layouts/Layout.astro';
+import LeakTest from '../../components/tools/LeakTest.tsx';
+---
+
+<script is:inline>
+  document.documentElement.classList.add('dark');
+</script>
+
+<Layout title="Do I Leak? - Privacy Leak Test" description="Check for IP, DNS, and WebRTC leaks to ensure your VPN is working correctly.">
+  <main class="container mx-auto px-4 py-8">
+    <div class="text-center">
+        <h1 class="text-4xl font-bold mb-4">Privacy Leak Test</h1>
+        <p class="text-lg text-gray-600 dark:text-gray-400 mb-8">
+            This tool helps you check if your VPN is configured correctly by testing for common privacy leaks.
+        </p>
+    </div>
+    
+    <LeakTest client:load />
+
+  </main>
+</Layout>

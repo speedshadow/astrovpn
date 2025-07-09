@@ -1,0 +1,80 @@
+---
+import Layout from '@/layouts/Layout.astro';
+import { Toaster } from 'sonner';
+import { MobileNav } from '@/components/admin/MobileNav';
+import { UserNav } from '@/components/admin/UserNav';
+;
+import {
+  ShieldCheck,
+  LayoutGrid,
+  FileText,
+  Newspaper,
+  Tags,
+  Rocket,
+  DatabaseZap,
+  Settings
+} from 'lucide-react';
+
+const { title } = Astro.props;
+const { pathname } = Astro.url;
+
+const navLinks = [
+  { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutGrid },
+  { href: '/admin/vpn', label: 'VPNs', icon: ShieldCheck },
+  { href: '/admin/reviews', label: 'Review Pages', icon: FileText },
+  { href: '/admin/blog', label: 'Blog Posts', icon: Newspaper },
+  { href: '/admin/blog/categories', label: 'Categories', icon: Tags },
+  { href: '/admin/settings', label: 'Definições do Site', icon: Settings },
+  { href: '/admin/backups', label: 'Backup e Restauro', icon: DatabaseZap },
+];
+
+const getLinkClass = (path: string) => {
+  const baseClass = 'flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary';
+  return pathname.startsWith(path) ? `${baseClass} bg-muted text-primary` : baseClass;
+};
+---
+
+<Layout {title}>
+  <div class="grid min-h-screen w-full md:grid-cols-[220px_1fr] lg:grid-cols-[280px_1fr]">
+    <div class="hidden border-r bg-muted/40 md:block">
+      <div class="flex h-full max-h-screen flex-col gap-2">
+        <div class="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+          <a href="/" class="flex items-center gap-2 font-semibold text-primary">
+            <Rocket className="h-6 w-6" />
+            <span>AstroVPN Admin</span>
+          </a>
+        </div>
+        <div class="flex-1 overflow-auto py-2">
+          <nav class="grid items-start px-2 text-sm font-medium lg:px-4">
+            {navLinks.map(link => (
+              <a href={link.href} class={getLinkClass(link.href)}>
+                <link.icon className="h-4 w-4" />
+                {link.label}
+              </a>
+            ))}
+          </nav>
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-col">
+      <header class="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
+        <MobileNav client:load navLinks={navLinks} pathname={pathname} />
+        
+        <div class="w-full flex-1">
+          <!-- O título da página é agora passado pelo layout, não precisa de h1 aqui -->
+        </div>
+
+        <UserNav client:load />
+
+      </header>
+      <main class="flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6" transition:name={`admin-main-${title}`}>
+        <div class="flex items-center">
+          <h1 class="text-2xl font-semibold">{title}</h1>
+        </div>
+        <slot />
+      </main>
+    </div>
+  </div>
+  <Toaster richColors position="top-right" />
+  
+</Layout>

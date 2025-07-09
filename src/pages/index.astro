@@ -1,0 +1,61 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { HeroSection } from '../components/vpn/HeroSection';
+import { Homepage } from '../components/vpn/Homepage';
+import { getImage } from 'astro:assets';
+import { createServerClient } from '@supabase/ssr';
+
+const supabase = createServerClient(
+  import.meta.env.PUBLIC_SUPABASE_URL,
+  import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  {
+    cookies: {
+      get: (name) => Astro.cookies.get(name)?.value ?? '',
+      set: (name, value, options) => {
+        Astro.cookies.set(name, value, options);
+      },
+      remove: (name, options) => {
+        Astro.cookies.delete(name, options);
+      }
+    },
+  }
+);
+
+const { data: vpns, error } = await supabase
+    .from('vpns')
+    .select('id, name, slug, logo_url, star_rating, affiliate_link, pros, cons, categories, simultaneous_connections, server_count, country_count, has_kill_switch, has_double_vpn, keeps_logs, supported_devices, price_monthly_usd, price_monthly_eur, has_p2p, has_ad_blocker')
+    .eq('show_on_homepage', true);
+
+if (error) {
+  console.error('Error fetching homepage VPNs:', error);
+}
+
+// Process images before passing them to the component
+const vpnsWithOptimizedImages = await Promise.all((vpns || []).map(async (vpn) => {
+  const optimizedImage = await getImage({
+    src: vpn.logo_url,
+    width: 80,
+    height: 80,
+    format: 'webp',
+  });
+  return {
+    ...vpn,
+    optimizedLogo: optimizedImage,
+  };
+}));
+
+const props = {
+  vpns: vpnsWithOptimizedImages
+};
+
+---
+
+<Layout 
+	title="AstroVPN - Today's Top VPN Deals & Reviews (2025)"
+	description="Find the best VPN of 2025. We review and rank top VPN services for streaming, privacy, and security. Get exclusive deals and secure your digital world today."
+>
+	<main>
+		<HeroSection client:load />
+		<Homepage client:load {...props} />
+	</main>
+</Layout>

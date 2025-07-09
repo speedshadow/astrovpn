@@ -1,0 +1,34 @@
+{
+  "extends": "astro/tsconfigs/base",
+  "compilerOptions": {
+    // React/JSX settings
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "strict": true,
+    "types": ["node"],
+
+    // Module resolution settings for modern bundlers
+    "moduleResolution": "bundler",
+    "module": "ESNext",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+
+    // The key to ignoring third-party library type errors
+    "skipLibCheck": true,
+
+    // Path aliases
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.astro",
+    "astro.config.mjs",
+    "env.d.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

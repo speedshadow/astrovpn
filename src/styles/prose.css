@@ -1,0 +1,36 @@
+/* Manual Prose Styles for Tailwind v4 Compatibility */
+
+@layer base {
+  .prose h1,
+  .tiptap h1 {
+    @apply text-4xl font-extrabold tracking-tight mb-4;
+  }
+  .prose h2,
+  .tiptap h2 {
+    @apply text-3xl font-bold tracking-tight mb-3 border-b pb-2;
+  }
+  .prose h3,
+  .tiptap h3 {
+    @apply text-2xl font-semibold tracking-tight mb-2;
+  }
+  .prose h4,
+  .tiptap h4 {
+    @apply text-xl font-semibold tracking-tight mb-2;
+  }
+  .prose blockquote,
+  .tiptap blockquote {
+    @apply border-l-4 border-slate-300 pl-4 italic my-4;
+  }
+
+  /* Dark Mode Styles */
+  .dark .prose h1,
+  .dark .prose h2,
+  .dark .prose h3,
+  .dark .prose h4 {
+    @apply text-slate-100 border-slate-700;
+  }
+
+  .dark .prose blockquote {
+    @apply border-slate-700 text-slate-400;
+  }
+}

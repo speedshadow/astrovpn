@@ -1,0 +1,39 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { VpnForm } from '@/components/admin/VpnForm';
+
+import type { Vpn } from '@/components/admin/VpnDashboard';
+
+const { supabase, session } = Astro.locals;
+
+if (!session) {
+  return Astro.redirect('/admin/login');
+}
+
+const { id } = Astro.params;
+
+// Fetch the specific VPN data from the database
+const { data: vpn, error } = await supabase
+  .from('vpns')
+  .select('*')
+  .eq('id', id)
+  .single();
+
+if (error) {
+  console.error('Error fetching VPN for editing:', error.message);
+  // Optionally, redirect to a 404 or show an error message
+  return new Response('VPN not found', { status: 404 });
+}
+---
+
+<AdminLayout title={`Edit ${vpn.name}`}>
+  <div class="flex justify-between items-center mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">Edit VPN</h1>
+      <p class="text-muted-foreground">Update the details for <span class="font-semibold">{vpn.name}</span>.</p>
+    </div>
+  </div>
+
+  <VpnForm client:only="react" vpnToEdit={vpn as Vpn} />
+
+</AdminLayout>

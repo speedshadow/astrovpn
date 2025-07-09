@@ -1,0 +1,14 @@
+---
+// src/pages/admin/logout.astro
+const { locals, redirect } = Astro;
+
+const { error } = await locals.supabase.auth.signOut();
+
+if (error) {
+  console.error('Error signing out:', error.message);
+  // Optionally, redirect to an error page or show a message
+  // For now, we'll redirect to login anyway
+}
+
+return redirect('/admin/login');
+---

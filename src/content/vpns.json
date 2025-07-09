@@ -1,0 +1,85 @@
+[
+  {
+    "id": 1,
+    "name": "CyberGuard VPN",
+    "logo": "/logos/cyberguard.svg",
+    "rating": 4.9,
+    "price_monthly": 9.99,
+    "speed_mbps": 95,
+    "privacy_score": 10,
+    "description": "Top-tier security and blazing-fast speeds for the ultimate online freedom.",
+    "pros": [
+      "Military-grade encryption",
+      "Optimized for streaming",
+      "Strict no-logs policy"
+    ],
+    "cons": ["Premium pricing"],
+    "supportedDevices": [
+      "windows",
+      "macos",
+      "linux",
+      "android",
+      "ios",
+      "router"
+    ],
+    "offerUrl": "#",
+    "categories": ["security", "streaming"]
+  },
+  {
+    "id": 2,
+    "name": "PrivacyOne",
+    "logo": "/logos/privacyone.svg",
+    "rating": 4.8,
+    "price_monthly": 6.49,
+    "speed_mbps": 80,
+    "privacy_score": 9,
+    "description": "Your go-to choice for absolute privacy and anonymous browsing.",
+    "pros": [
+      "Strong focus on privacy",
+      "Accepts cryptocurrency",
+      "Good server selection"
+    ],
+    "cons": ["Speeds can vary"],
+    "supportedDevices": ["windows", "macos", "android", "ios"],
+    "offerUrl": "#",
+    "categories": ["privacy", "security"]
+  },
+  {
+    "id": 3,
+    "name": "StreamFast VPN",
+    "logo": "/logos/streamfast.svg",
+    "rating": 4.7,
+    "price_monthly": 5.99,
+    "speed_mbps": 110,
+    "privacy_score": 7,
+    "description": "Unlock global content with the fastest and most reliable streaming VPN.",
+    "pros": [
+      "Unblocks major streaming sites",
+      "Very high speeds",
+      "Easy-to-use app"
+    ],
+    "cons": ["Based in a 5-eyes country"],
+    "supportedDevices": ["windows", "macos", "android", "ios", "tv"],
+    "offerUrl": "#",
+    "categories": ["streaming", "gaming"]
+  },
+  {
+    "id": 4,
+    "name": "OpenSource Secure",
+    "logo": "/logos/opensource.svg",
+    "rating": 4.6,
+    "price_monthly": 4.0,
+    "speed_mbps": 75,
+    "privacy_score": 8,
+    "description": "Transparent, community-driven security for the tech-savvy user.",
+    "pros": [
+      "Fully open-source",
+      "Highly customizable",
+      "Strong community support"
+    ],
+    "cons": ["Requires technical knowledge"],
+    "supportedDevices": ["linux", "windows", "macos", "android"],
+    "offerUrl": "#",
+    "categories": ["security", "open-source"]
+  }
+]

@@ -1,0 +1,265 @@
+---
+import { Image } from 'astro:assets';
+import Layout from '@/layouts/Layout.astro';
+import { Badge } from '@/components/ui/badge';
+import { StarRating } from '@/components/StarRating';
+import { CheckCircle, XCircle, ArrowRight, Server, Share2, ShieldOff, Ban, GitFork, Gavel, MapPin, Link, Globe } from 'lucide-react';
+import { PlatformIcon } from '@/components/PlatformIcon';
+import SocialShare from '@/components/SocialShare.astro';
+import { SpeedTestChart } from '@/components/vpn/SpeedTestChart';
+
+const { supabase } = Astro.locals;
+const { slug } = Astro.params;
+
+if (!slug) {
+  return new Response("VPN slug is required", { status: 400 });
+}
+
+const { data: vpn, error } = await supabase
+  .from('vpns')
+  .select(`
+    id,
+    name,
+    slug,
+    description,
+    logo_url,
+    star_rating,
+    affiliate_link,
+    coupon_code,
+    pros,
+    cons,
+    full_review,
+    simultaneous_connections,
+    supported_devices,
+    based_in_country_name,
+    has_p2p,
+    has_kill_switch,
+    has_ad_blocker,
+    has_double_vpn,
+    has_split_tunneling,
+    has_court_proof,
+    server_count,
+    country_count,
+    speed_test_results
+  `)
+  .eq('slug', slug)
+  .single();
+
+if (error || !vpn) {
+  console.error(`Failed to fetch VPN for slug '${slug}':`, error);
+  return new Response(`Could not load VPN data. Check the server console for details.`, {
+    status: 500
+  });
+}
+
+const getSupportedDevices = (devices: any): string[] => {
+  if (!devices) return [];
+  if (Array.isArray(devices)) return devices.map(d => String(d).toLowerCase());
+  if (typeof devices === 'object') {
+    return Object.entries(devices)
+      .filter(([, value]) => value === true)
+      .map(([key]) => key.toLowerCase());
+  }
+  if (typeof devices === 'string') {
+    try {
+      const parsed = JSON.parse(devices);
+      if (Array.isArray(parsed)) return parsed.map(d => String(d).toLowerCase());
+      if (typeof parsed === 'object') return getSupportedDevices(parsed);
+    } catch (e) {
+      return devices.split(',').map(d => d.trim().toLowerCase());
+    }
+  }
+  return [];
+};
+
+const supportedPlatforms = getSupportedDevices(vpn.supported_devices);
+
+const keyFeatures = [
+  { label: 'Simultaneous Connections', value: vpn.simultaneous_connections || 'N/A', icon: 'Link' },
+  { label: 'Based In', value: vpn.based_in_country_name || 'N/A', icon: 'Globe' },
+  { label: 'P2P Support', value: vpn.has_p2p, icon: 'Share2' },
+  { label: 'Kill Switch', value: vpn.has_kill_switch, icon: 'ShieldOff' },
+  { label: 'Ad Blocker', value: vpn.has_ad_blocker, icon: 'Ban' },
+  { label: 'Double VPN', value: vpn.has_double_vpn, icon: 'Server' },
+  { label: 'Split Tunneling', value: vpn.has_split_tunneling, icon: 'GitFork' },
+  { label: 'Servers', value: vpn.server_count ? vpn.server_count.toLocaleString() : 'N/A', icon: 'Server' },
+  { label: 'Countries', value: vpn.country_count || 'N/A', icon: 'MapPin' },
+  { label: 'Proven No-Logs', value: vpn.has_court_proof, icon: 'Gavel' },
+];
+---
+
+<Layout title={`${vpn.name} Review - A Deep Dive`}>
+  <SocialShare title={vpn.name} slug={vpn.slug} />
+  <div class="fixed inset-0 bg-muted/40 dark:bg-muted/40 -z-10"></div>
+  <div class="relative z-10">
+    <div class="max-w-screen-2xl mx-auto px-0 py-10">
+      
+      <!-- Page Header -->
+      <header class="mb-12 text-center">
+        <h1 class="text-4xl md:text-5xl font-extrabold tracking-tight mb-2">{vpn.name} Review</h1>
+        <p class="text-lg text-muted-foreground">Our complete hands-on analysis.</p>
+      </header>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+        
+        <!-- Main Content -->
+        <main class="lg:col-span-2 space-y-12">
+          
+          <!-- Pros & Cons Section -->
+          <section class="grid md:grid-cols-2 gap-8">
+            <div class="bg-card p-6 rounded-2xl border">
+              <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                <CheckCircle className="text-green-500 w-7 h-7" client:visible />
+                <span>What We Like</span>
+              </h2>
+              <ul class="space-y-3 text-muted-foreground">
+                {(vpn.pros || []).map((pro: string) => (
+                  <li class="flex items-start gap-3">
+                    <CheckCircle className="text-green-500 w-5 h-5 mt-1 flex-shrink-0" client:visible />
+                    <span>{pro}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div class="bg-card p-6 rounded-2xl border">
+              <h2 class="text-2xl font-bold mb-4 flex items-center gap-3">
+                <XCircle className="text-red-500 w-7 h-7" client:visible />
+                <span>What We Don't</span>
+              </h2>
+              <ul class="space-y-3 text-muted-foreground">
+                {(vpn.cons || []).map((con: string) => (
+                  <li class="flex items-start gap-3">
+                    <XCircle className="text-red-500 w-5 h-5 mt-1 flex-shrink-0" client:visible />
+                    <span>{con}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </section>
+
+          <!-- Speed Test Chart Section -->
+          {vpn.speed_test_results && vpn.speed_test_results.length > 0 && (
+            <section class="bg-card p-6 rounded-2xl border">
+              <h2 class="text-2xl font-bold mb-4">Speed Performance</h2>
+              <SpeedTestChart client:only="react" data={vpn.speed_test_results} />
+            </section>
+          )}
+
+          <!-- Mid-Page High-Conversion CTA -->
+          {vpn.affiliate_link && (
+            <section class="bg-gradient-to-r from-blue-500/10 to-green-500/10 p-6 rounded-2xl border-2 border-primary/20 flex flex-col md:flex-row items-center justify-between gap-6 my-12 shadow-lg">
+              <div class="flex items-center gap-4">
+                <Image src={vpn.logo_url} alt={`${vpn.name} Logo`} class="h-16 w-16 bg-white p-1 rounded-full border" width={64} height={64} />
+                <div>
+                  <h3 class="text-2xl font-bold">Ready to Try {vpn.name}?</h3>
+                  <p class="text-muted-foreground">Get the best deal available now.</p>
+                </div>
+              </div>
+              <a href={vpn.affiliate_link} target="_blank" rel="noopener noreferrer" class="affiliate-link-track inline-flex items-center justify-center h-12 px-8 rounded-md text-lg bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-lg shadow-primary/20 transition-transform duration-200 hover:scale-105 group" data-vpn-id={vpn.id}>
+                Get Exclusive Deal
+                <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" client:visible />
+              </a>
+            </section>
+          )}
+
+          <!-- Full Review Section -->
+          {vpn.full_review && (
+            <section id="full-review" class="bg-card p-8 rounded-2xl border">
+              <h2 class="text-3xl font-bold mb-6">Full Expert Review</h2>
+              <div class="prose prose-lg dark:prose-invert max-w-none" set:html={vpn.full_review} />
+            </section>
+          )}
+        </main>
+
+        <!-- Sidebar -->
+        <aside class="lg:col-span-1 space-y-8 sticky top-24 h-fit">
+          <div class="bg-card p-6 rounded-2xl border text-center">
+            <Image src={vpn.logo_url} alt={`${vpn.name} Logo`} class="mx-auto h-20 w-20 mb-4" width={80} height={80} />
+            <div class="flex justify-center mb-4">
+              <StarRating rating={vpn.star_rating / 2} client:visible />
+            </div>
+            
+            {vpn.affiliate_link && (
+              <div class="bg-green-500/10 border border-green-500/30 p-4 rounded-xl mt-4">
+                <h4 class="text-lg font-bold text-green-400 mb-2">Exclusive Offer</h4>
+                <a href={vpn.affiliate_link} target="_blank" rel="noopener noreferrer" class="affiliate-link-track inline-flex items-center justify-center w-full h-11 px-8 rounded-md text-lg bg-green-500 hover:bg-green-600 text-white font-bold shadow-lg shadow-green-500/20 transition-transform duration-200 hover:scale-105 group" data-vpn-id={vpn.id}>
+                  Visit {vpn.name}
+                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" client:visible />
+                </a>
+                {vpn.coupon_code && (
+                  <p class="text-xs text-green-400/80 mt-3">
+                    Discount <span class="font-bold text-white">{vpn.coupon_code}</span> applied!
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div class="bg-card p-6 rounded-2xl border">
+            <h3 class="text-xl font-bold mb-4">Key Features</h3>
+            <ul class="space-y-3">
+              {keyFeatures.map(feature => {
+                const isBoolean = typeof feature.value === 'boolean';
+                const iconMap = { Server, MapPin, Share2, ShieldOff, Ban, GitFork, Gavel, Link, Globe };
+                const Icon = iconMap[feature.icon];
+
+                return (
+                  <li class="flex items-center justify-between text-muted-foreground">
+                    <span class="flex items-center gap-3">
+                      {Icon && <Icon className="w-5 h-5 text-primary" />}
+                      <span>{feature.label}</span>
+                    </span>
+                    {isBoolean ? (
+                      feature.value 
+                        ? <CheckCircle className="text-green-500 w-5 h-5" /> 
+                        : <XCircle className="text-red-500 w-5 h-5" />
+                    ) : (
+                      <span class="font-bold text-foreground">{feature.value}</span>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+
+          <div class="bg-card p-6 rounded-2xl border">
+            <h3 class="text-xl font-bold mb-4">Supported Platforms</h3>
+            <div class="flex flex-wrap justify-center gap-3">
+              {supportedPlatforms.map(platform => (
+                <Badge variant="secondary" class="flex items-center gap-2 text-base font-medium capitalize">
+                  <PlatformIcon platform={platform} className="h-4 w-4" client:visible />
+                  <span>{platform}</span>
+                </Badge>
+              ))}
+            </div>
+          </div>
+        </aside>
+
+      </div>
+    </div>
+  </div>
+<script>
+  import { trackAffiliateClick } from '@/lib/analytics-tracker';
+
+  function setupAffiliateTracking() {
+    const affiliateLinks = document.querySelectorAll('.affiliate-link-track');
+    
+    affiliateLinks.forEach(link => {
+      // Prevent adding multiple listeners on client-side navigations
+      if ((link as any)._trackingAttached) return;
+
+      link.addEventListener('click', () => {
+        const vpnId = (link as HTMLElement).dataset.vpnId;
+        if (vpnId) {
+          trackAffiliateClick(parseInt(vpnId, 10));
+        }
+      });
+      (link as any)._trackingAttached = true;
+    });
+  }
+
+  // Run on initial page load and subsequent client-side navigations
+  document.addEventListener('astro:page-load', setupAffiliateTracking);
+  document.addEventListener('astro:after-swap', setupAffiliateTracking);
+</script>
+</Layout>

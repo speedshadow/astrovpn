@@ -1,0 +1,26 @@
+# build output
+dist/
+# generated types
+.astro/
+
+# dependencies
+node_modules/
+
+# Logs
+.venv/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment variables
+.env*
+
+# Sensitive backup files
+supabase/backups/
+
+# macOS-specific files
+.DS_Store
+
+# jetbrains setting folder
+.idea/

@@ -1,0 +1,63 @@
+---
+import AdminLayout from '@/layouts/AdminLayout.astro';
+import { AnalyticsDashboard } from '@/components/admin/AnalyticsDashboard';
+
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { ShieldCheck, FileText, Newspaper } from 'lucide-react';
+
+const { session, supabase } = Astro.locals;
+
+
+
+// Fetch aggregate data for the dashboard cards
+const { count: vpnCount, error: vpnError } = await supabase
+  .from('vpns')
+  .select('*', { count: 'exact', head: true });
+if (vpnError) console.error('Error fetching VPN count:', vpnError);
+
+const { count: reviewCount, error: reviewError } = await supabase
+  .from('review_pages')
+  .select('*', { count: 'exact', head: true });
+if (reviewError) console.error('Error fetching review page count:', reviewError);
+
+const { count: postCount, error: postError } = await supabase
+  .from('blog_posts')
+  .select('*', { count: 'exact', head: true });
+if (postError) console.error('Error fetching blog post count:', postError);
+
+const stats = [
+    { title: "Total VPNs", value: vpnCount ?? 0, icon: ShieldCheck, description: "Manage all VPN entries" },
+    { title: "Review Pages", value: reviewCount ?? 0, icon: FileText, description: "Curated review collections" },
+    { title: "Blog Posts", value: postCount ?? 0, icon: Newspaper, description: "Content for your audience" },
+];
+---
+
+<AdminLayout title="Dashboard">
+  <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+    {stats.map(stat => (
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+          <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
+          <stat.icon className="h-4 w-4 text-muted-foreground" />
+        </CardHeader>
+        <CardContent>
+          <div class="text-2xl font-bold">{stat.value}</div>
+          <p class="text-xs text-muted-foreground">{stat.description}</p>
+        </CardContent>
+      </Card>
+    ))}
+  </div>
+  <div class="mt-6">
+    <Card>
+        <CardHeader>
+            <CardTitle>Analytics Overview</CardTitle>
+            <CardDescription>An overview of your website's performance.</CardDescription>
+        </CardHeader>
+        <CardContent>
+            <AnalyticsDashboard client:load />
+        </CardContent>
+    </Card>
+  </div>
+
+
+</AdminLayout>

@@ -1,0 +1,17 @@
+# Ignore artifacts:
+node_modules
+dist
+.astro
+
+# Ignore lock files:
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Ignore logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Ignore environment variables
+.env*
