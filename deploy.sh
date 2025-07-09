@@ -41,7 +41,6 @@ fi
 
 ./generate-env.sh "$DOMAIN_OR_IP"
 
-docker compose down -v || true
 docker compose up -d --build
 
 echo "Deploy concluído. Aceda em: $DOMAIN_OR_IP"
